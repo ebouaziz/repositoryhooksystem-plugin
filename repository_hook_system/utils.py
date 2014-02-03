@@ -8,6 +8,7 @@ import os
 import subprocess
 import sys
 
+
 def iswritable(filename):
     """
     returns whether or not a filename is writable,
@@ -17,7 +18,7 @@ def iswritable(filename):
     if os.path.exists(filename):
         return os.access(filename, os.W_OK)
     else:
-        
+
         # XXX try to make the file and delete it,
         # as this is easier than figuring out permissions
         try:
@@ -25,11 +26,12 @@ def iswritable(filename):
         except IOError:
             return False
 
-        os.remove(filename) # remove the file stub
+        os.remove(filename)  # remove the file stub
         return True
 
+
 def command_line_args(string):
-    p = subprocess.Popen('%s %s %s' % (sys.executable, 
+    p = subprocess.Popen('%s %s %s' % (sys.executable,
                                        os.path.abspath(__file__),
                                        string),
                          shell=True, stdout=subprocess.PIPE)

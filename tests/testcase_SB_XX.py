@@ -12,6 +12,7 @@ Test Cases are coded as following:
 from testcase_abstract import (TestCaseAbstract, TestFunctionalTestSuite,
     TestCaseError)
 from trac.tests.functional import *
+import inspect
 
 
 class SB_01(TestCaseAbstract):
@@ -274,6 +275,25 @@ class SB_05(TestCaseAbstract):
 def functionalSuite(suite=None):
     if not has_svn:
         raise Exception("Missing python-subversion module")
+
+    def is_testcase(obj):
+        """ is_testcase """
+
+        if inspect.isclass(obj) and getattr(obj, "runTest", False):
+            return True
+
+        return False
+
+    _, file_name = os.path.split(__file__)
+    module_name = file_name.replace('.py', '')
+    with file("./%s_test_docs.txt" % module_name, "wt") as _fd:
+        module = __import__(module_name)
+
+        testcases = inspect.getmembers(module, is_testcase)
+
+        _fd.write("=== %s ===\n\n" % module_name)
+        for _, test in testcases:
+            _fd.write("{{{\n%s\n}}}\n\n\n" % inspect.getdoc(test))
 
     if not suite:
         suite = TestFunctionalTestSuite()

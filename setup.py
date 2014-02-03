@@ -1,6 +1,6 @@
 from setuptools import find_packages, setup
 
-version='0.1.1'
+version='0.1.2'
 
 setup(name='RepositoryHookSystem',
       version=version,
@@ -17,7 +17,10 @@ setup(name='RepositoryHookSystem',
       install_requires=['python-dateutil'],
       entry_points = """
       [trac.plugins]
-      repositoryhooksystem = repository_hook_system
+      repository_hook_system.neoticketchanger = repository_hook_system.neoticketchanger
+      repository_hook_system.listener = repository_hook_system.listener
+      repository_hook_system.admin = repository_hook_system.admin
+      repository_hook_system.svnhooksystem.svnhooksystem = repository_hook_system.svnhooksystem.svnhooksystem
       """,
       )
 
