@@ -305,7 +305,7 @@ class TK_06(TestCaseAbstract):
 class TK_07(TestCaseAbstract):
 
     """
-    Test name: TK_01, case brings from vendor in sandbox and delivers on
+    Test name: TK_07, case brings from vendor in sandbox and delivers on
     trunk
 
     Objective:
@@ -324,9 +324,8 @@ class TK_07(TestCaseAbstract):
                 * component (empty)
 
     Pass Criteria:
-        * Error messages are displayed:
-            * Commit blocked by pre-commit hook
-            * No valid component, delivery rejected
+        * Expected ticket message:
+            * (In [x]) Brings [y] (from /vendor/component)
     """
 
     def runTest(self):
