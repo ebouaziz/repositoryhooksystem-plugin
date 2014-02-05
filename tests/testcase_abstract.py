@@ -147,13 +147,7 @@ class TestSuiteEnvironment(SvnFunctionalTestEnvironment):
 
         config = env.config
         config.set('components',
-                   'repository_hook_system.admin.repositoryhookadmin',
-                   'enabled')
-        config.set('components',
-                   'repository_hook_system.neoticketchanger.*',
-                   'enabled')
-        config.set('components',
-                   'repository_hook_system.svnhooksystem.svnhooksystem',
+                   'repository_hook_system.*',
                    'enabled')
         config.set('trac',
                    'plugins_dir',

@@ -19,12 +19,19 @@ class PreRevPropChange(Component):
     implements(IRepositoryHookSubscriber)
 
     def is_available(self, repository, hookname):
+        """
+        Verify if hook name is valid.
+
+        :param repository: repository type
+        :param hookname: hook name
+        """
         return (hookname == 'pre-revprop-change')
 
     def invoke(self, project, revision, propname,
                action, user, repository, **kwargs):
 
-        # grab the first line from stdin (we don't care about other lines for new)
+        # grab the first line from stdin (we don't care about other lines for
+        # new)
         value = sys.stdin.readline()
 
         RevpropHook(self.env, None, project, revision, propname, value,
@@ -38,6 +45,12 @@ class PostRevPropChange(Component):
     implements(IRepositoryHookSubscriber)
 
     def is_available(self, repository, hookname):
+        """
+        Verify if hook name is valid.
+
+        :param repository: repository type
+        :param hookname: hook name
+        """
         return (hookname == 'pre-revprop-change')
 
     def invoke(self, project, revision, propname,
@@ -59,9 +72,23 @@ class PreCommit(Component):
     implements(IRepositoryHookSubscriber)
 
     def is_available(self, repository, hookname):
+        """
+        Verify if hook name is valid.
+
+        :param repository: repository type
+        :param hookname: hook name
+        """
         return (hookname == 'pre-commit')
 
     def invoke(self, project, repository, user, transaction, **kwargs):
+        """
+        Invoke by hook system on pre_commit operation
+
+        :param project: Project path, Trac env project
+        :param repository: repository path
+        :param user: author of the modification
+        :param transaction: transaction name for pre_commit
+        """
         PreCommitHook(self.env,
                       project=project,
                       rev=None,
@@ -76,9 +103,23 @@ class PostCommit(Component):
     implements(IRepositoryHookSubscriber)
 
     def is_available(self, repository, hookname):
+        """
+        Verify if hook name is valid.
+
+        :param repository: repository type
+        :param hookname: hook name
+        """
         return (hookname == 'post-commit')
 
     def invoke(self, project, repository, user, revision, **kwargs):
+        """
+        Invoke by hook system on post_commit operation
+
+        :param project: Project path, Trac env project
+        :param repository: repository path
+        :param user: author of the modification
+        :param revision: revision for post_commit
+        """
         PostCommitHook(self.env,
                        project=project,
                        rev=revision,

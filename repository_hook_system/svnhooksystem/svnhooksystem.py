@@ -25,8 +25,6 @@ class SVNHookSystem(Component):
     hooks = ['pre-commit', 'post-commit',
              'pre-revprop-change', 'post-revprop-change']
 
-    _svnlook = Option('svn', 'svnlook', default='/usr/bin/svnlook')
-
     def filename(self, hookname):
         location = self.env.config.get('trac', 'repository_dir')
         return os.path.join(location, 'hooks', hookname)
@@ -63,12 +61,3 @@ class SVNHookSystem(Component):
         # XXX this is all SCM-agnostic;  should be moved out
         return [subscriber for subscriber in self.listeners
                 if subscriber.is_available(self.type(), hookname)]
-#                 if subscriber.__class__.__name__
-#                 in getattr(self, hookname, [])
-#                 and subscriber.is_available(self.type(), hookname)]
-
-# @@ SD by default all hooks supported
-for hook in SVNHookSystem.hooks:
-    setattr(SVNHookSystem, hook,
-            ListOption('repository-hooks', hook, default='',
-            doc="active listeners for SVN changes on the %s hook" % hook))

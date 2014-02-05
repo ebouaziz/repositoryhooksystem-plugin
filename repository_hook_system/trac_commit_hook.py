@@ -72,7 +72,7 @@ dev_branch_dirs = ['/sandboxes']
 admin_branch_dirs = ['/tags', '/branches', '/platforms']
 trunk_directory = '/trunk'
 config_path = os.environ.get('ACCESS_CONF_PATH') or \
-              '/local/var/svn/config/access.conf'
+    '/local/var/svn/config/access.conf'
 vendor_directory = '/vendor'
 
 #
@@ -1049,13 +1049,13 @@ class PostCommitHook(CommitHook):
                 tktid = mo.group('ticket')
                 ticket = Ticket(self.env, int(tktid))
                 ticket.save_changes(self.author, "(In [%d]) %s" %
-                                 (self.rev, self.log), self.now)
+                                    (self.rev, self.log), self.now)
 
         # Get all tickets related to these revisions
         tickets = self._collect_tickets(revisions, srcbranch)
         if tickets:
             log = "%s ticket(s) %s" % (self.log,
-                             " ".join(['#%s' % k for k in tickets.keys()]))
+                                       " ".join(['#%s' % k for k in tickets.keys()]))
             self._update_log(log)
 
         for tktid in tickets:
