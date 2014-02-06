@@ -149,7 +149,7 @@ class RevpropHook(object):
 
     def _is_admin(self, author):
         '''
-        Verify whether the author has administrator priviledges
+        Verify whether the author has administrator privileges
         '''
         config = ConfigParser()
         if not os.path.isfile(configpath):

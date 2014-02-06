@@ -51,7 +51,7 @@ class PostRevPropChange(Component):
         :param repository: repository type
         :param hookname: hook name
         """
-        return (hookname == 'pre-revprop-change')
+        return (hookname == 'post-revprop-change')
 
     def invoke(self, project, revision, propname,
                action, user, repository, **kwargs):
