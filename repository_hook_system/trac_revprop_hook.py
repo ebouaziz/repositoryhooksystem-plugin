@@ -22,13 +22,14 @@
 #                          -p "$PROPNAME" <pre>|<post> "$"
 #
 
-import re
+from .repproxy import RepositoryProxy
+from ConfigParser import ConfigParser
+from optparse import OptionParser
+from repository_hook_system.errors import HookStatus
 import os
+import re
 import sys
 
-from optparse import OptionParser
-from ConfigParser import ConfigParser
-from .repproxy import RepositoryProxy
 
 OK = 0
 ERROR = 1
@@ -61,7 +62,7 @@ class RevpropHook(object):
         if repos and self.repospath != repos:
             print >> sys.stderr, 'Invalid/incoherent repository %s %s' % \
                 (self.repospath, repos)
-            sys.exit(-ERROR)
+            raise HookStatus(result=-ERROR)
 
         (type, prop) = name.split(':')
 
@@ -70,31 +71,33 @@ class RevpropHook(object):
                 # on post-revprop-change, update Trac w/ SVN properties
                 # custom properties are not cached anyway ;-(
                 self._update_trac()
-            sys.exit(0)
+            raise HookStatus(result=0)
 
         if type == 'svn':
             if prop == 'log':
                 self._verify_log_msg()
-                sys.exit(0)
+                raise HookStatus(result=0)
             if self._is_admin(self.author):
                 if prop == 'author':
-                    sys.exit(0)
+                    raise HookStatus(result=0)
         elif type == 'rth':
             try:
                 func = getattr(self, '_verify_rth_%s' % prop)
                 # if the property is a valid one and the request is about
                 # deletion
                 if func and self.action == 'D':
-                    sys.exit(OK)
-                func() and sys.exit(OK)
-                print >> sys.stderr, 'Invalid value for property %s: %s' % \
-                                     (self.name, self.value)
-                sys.exit(-ERROR)
+                    raise HookStatus(result=OK)
+                if func():
+                    print >> sys.stderr, 'Invalid value for property %s: %s' % \
+                                         (self.name, self.value)
+                    raise HookStatus(result=-ERROR)
+
+                raise HookStatus(result=OK)
             except AttributeError:
                 # unexpected property, will be catched later
                 pass
         print >> sys.stderr, 'This property (%s) cannot be modified' % name
-        sys.exit(-ERROR)
+        raise HookStatus(result=-ERROR)
 
     def _verify_log_msg(self):
         #regex = re.compile(changeset_cmd_pattern, re.IGNORECASE)
@@ -107,14 +110,14 @@ class RevpropHook(object):
             if (not newmo):
                 print >> sys.stderr, \
                     'Missing message:\n  was: "%s"' % oldlog.split('\n')[0]
-                sys.exit(-ERROR)
+                raise HookStatus(result=-ERROR)
             if (oldmo.group('first') != newmo.group('first')) or \
                (oldmo.group('second') != newmo.group('second')):
                 if not self._is_admin(self.author) or not newmo.group('force'):
                     print >> sys.stderr, \
                         'Original parameters should be kept unaltered:\n' \
                         '  "%s"' % oldlog.split('\n')[0]
-                    sys.exit(-ERROR)
+                    raise HookStatus(result=-ERROR)
 
     def _verify_rth_deliver(self):
         # check that source revision are ordered integers
@@ -162,43 +165,3 @@ class RevpropHook(object):
         if not author.lower() in [s.strip() for s in admins.lower().split(',')]:
             return False
         return True
-
-
-if __name__ == "__main__":
-    usage = "usage: %prog [options] <pre|post>"
-    parser = OptionParser(usage)
-    parser.add_option('-p', '--project', dest='project',
-                      help='path to the Trac project')
-    parser.add_option('-r', '--revision', dest='rev',
-                      help='repository revision number')
-    parser.add_option('-u', '--user', dest='author',
-                      help='author of the change')
-    parser.add_option('-d', '--repos', dest='rep',
-                      help='subversion repository path')
-    parser.add_option('-n', '--name', dest='prop',
-                      help='property name')
-    parser.add_option('-a', '--action', dest='action',
-                      help='subversion action code (A|D|M)')
-
-    (options, args) = parser.parse_args(sys.argv[1:])
-    if options.project is None:
-        print >> sys.stderr, "Unspecified project"
-        sys.exit(-ERROR)
-    if options.rev is None:
-        print >> sys.stderr, "Unspecified revision"
-        sys.exit(-ERROR)
-    if options.prop is None:
-        print >> sys.stderr, "Unspecified name"
-        sys.exit(-ERROR)
-    if len(args) < 1:
-        print >> sys.stderr, "Missing argument"
-        sys.exit(-ERROR)
-
-    # grab the first line from stdin (we don't care about other lines for new)
-    value = sys.stdin.readline()
-
-    # consider that the defaut hook is 'pre' so that changes are always
-    # validated if an invalid command line is provided
-    hook = RevpropHook(args[0] != 'pre', options.project, options.rev,
-                       options.prop, value, options.action, options.author,
-                       options.rep)

@@ -17,23 +17,24 @@
 #   all copies or substantial portions of the Software.
 # ----------------------------------------------------------------------------
 
-import re
-import os
-import sys
-import string
+from ConfigParser import ConfigParser
 from datetime import datetime
 from optparse import OptionParser
-
+from pysvn import Transaction
+from repository_hook_system.errors import HookStatus
+from repproxy import RepositoryProxy
 from trac.env import open_environment
 from trac.resource import ResourceNotFound
-from trac.ticket.notification import TicketNotifyEmail
 from trac.ticket import Ticket, Milestone
+from trac.ticket.notification import TicketNotifyEmail
 from trac.util.datefmt import utc, to_timestamp, to_datetime
-from ConfigParser import ConfigParser
-from repproxy import RepositoryProxy
+import os
+import re
+import string
+import sys
+
 
 # Use pysvn for later development, as it is easier to understand
-from pysvn import Transaction
 
 OK = 0
 ERROR = 1
@@ -378,7 +379,7 @@ class PreCommitHook(CommitHook):
         self.transaction = Transaction(rep, txn)
         self.youngest = self.proxy.get_youngest_revision()
         if self.youngest == 0:
-            sys.exit(OK)
+            raise HookStatus(OK)
         return OK
 
     def _get_author(self):
@@ -448,7 +449,7 @@ class PreCommitHook(CommitHook):
     def finalize(self, result):
         if OK == result:
             self._update_log(self.log)
-        sys.exit(result)
+        raise HookStatus(result)
 
     def _cmd_admins(self):
         '''
@@ -1177,21 +1178,4 @@ class PostCommitHook(CommitHook):
                 fp.close()
             except IOError as e:
                 print >> sys.stderr, 'Error, can\'t create TAG file: %s' % e
-        sys.exit(result)
-
-
-# if __name__ == "__main__":
-#     if options.project is None:
-#         print >> sys.stderr, "Unspecified project"
-#         sys.exit(ERROR)
-#     if options.rep is None:
-#         print >> sys.stderr, "Unspecified repository"
-#         sys.exit(ERROR)
-#     if options.rev is None and not options.txn is None:
-#         PreCommitHook()
-#     if not options.rev is None and options.txn is None:
-#         PostCommitHook()
-#     else:
-#         print >> sys.stderr, \
-#             "A transaction OR a revision must be specified (but not both)"
-#         sys.exit(ERROR)
+        raise HookStatus(result)

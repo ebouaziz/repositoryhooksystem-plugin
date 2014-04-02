@@ -8,6 +8,7 @@ import re
 import urlparse
 import xml.etree.ElementTree as et
 from trac.tests.functional import *
+import os
 
 
 # Test case exception

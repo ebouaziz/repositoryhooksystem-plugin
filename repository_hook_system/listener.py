@@ -6,27 +6,30 @@ This module provides an entry point for trac callable
 from the command line
 """
 
-import os
-import sys
-
 from optparse import OptionParser
+from repository_hook_system.errors import HookStatus
 from repository_hook_system.interface import IRepositoryChangeListener
 from trac.core import *
 from trac.env import open_environment
+import os
+import sys
+
 
 
 class RepositoryChangeListener(object):
     # XXX this doesn't need to be a class...yet!
 
-    def __init__(self, env, project, hook, options):
+    def __init__(self):
         """
         * project : path to the trac project environment
         * hook : name of the hook called from
         * args : arguments for the particular implementation of IRepositoryChangeListener
         """
 
+    def process(self, env, project, hook, options):
         # open the trac environment
         #env = open_environment(project)
+        self.env = env
         repo = env.get_repository()
         repo.sync()
 
@@ -36,11 +39,16 @@ class RepositoryChangeListener(object):
         # find the listener for the given repository type and invoke the hook
         for listener in listeners:
             if env.config.get('trac', 'repository_type') in listener.type():
-                # @@SD changeset = listener.changeset(repo, hook, *args)
                 subscribers = listener.subscribers(hook)
-                for subscriber in subscribers:
-                    subscriber.invoke(**vars(options))  # @@SD
 
+                status = []
+                for subscriber in subscribers:
+                    self.env.log.debug("Call subscriber='%s'" % str(subscriber))
+                    try:
+                        subscriber.invoke(**vars(options))
+                    except HookStatus as excpt:
+                        status.append(excpt.status)
+        return not any(status)
 
 def filename():
     return os.path.abspath(__file__.rstrip('c'))
@@ -151,4 +159,9 @@ if __name__ == '__main__':
     # Get command line options
     options = _parse_options()
 
-    RepositoryChangeListener(options.project, options.hook, options)
+    rcl = RepositoryChangeListener()
+    if rcl.process(options.project, options.hook, options):
+        status = 0
+    else:
+        status = 1
+    sys.exit(status)
