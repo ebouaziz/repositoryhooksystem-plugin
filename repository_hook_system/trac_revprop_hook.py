@@ -62,7 +62,7 @@ class RevpropHook(object):
         if repos and self.repospath != repos:
             print >> sys.stderr, 'Invalid/incoherent repository %s %s' % \
                 (self.repospath, repos)
-            raise HookStatus(result=-ERROR)
+            raise HookStatus(-ERROR)
 
         (type, prop) = name.split(':')
 
@@ -71,33 +71,33 @@ class RevpropHook(object):
                 # on post-revprop-change, update Trac w/ SVN properties
                 # custom properties are not cached anyway ;-(
                 self._update_trac()
-            raise HookStatus(result=0)
+            raise HookStatus(0)
 
         if type == 'svn':
             if prop == 'log':
                 self._verify_log_msg()
-                raise HookStatus(result=0)
+                raise HookStatus(0)
             if self._is_admin(self.author):
                 if prop == 'author':
-                    raise HookStatus(result=0)
+                    raise HookStatus(0)
         elif type == 'rth':
             try:
                 func = getattr(self, '_verify_rth_%s' % prop)
                 # if the property is a valid one and the request is about
                 # deletion
                 if func and self.action == 'D':
-                    raise HookStatus(result=OK)
+                    raise HookStatus(OK)
                 if func():
                     print >> sys.stderr, 'Invalid value for property %s: %s' % \
                                          (self.name, self.value)
-                    raise HookStatus(result=-ERROR)
+                    raise HookStatus(-ERROR)
 
-                raise HookStatus(result=OK)
+                raise HookStatus(OK)
             except AttributeError:
                 # unexpected property, will be catched later
                 pass
         print >> sys.stderr, 'This property (%s) cannot be modified' % name
-        raise HookStatus(result=-ERROR)
+        raise HookStatus(-ERROR)
 
     def _verify_log_msg(self):
         #regex = re.compile(changeset_cmd_pattern, re.IGNORECASE)
@@ -110,14 +110,14 @@ class RevpropHook(object):
             if (not newmo):
                 print >> sys.stderr, \
                     'Missing message:\n  was: "%s"' % oldlog.split('\n')[0]
-                raise HookStatus(result=-ERROR)
+                raise HookStatus(-ERROR)
             if (oldmo.group('first') != newmo.group('first')) or \
                (oldmo.group('second') != newmo.group('second')):
                 if not self._is_admin(self.author) or not newmo.group('force'):
                     print >> sys.stderr, \
                         'Original parameters should be kept unaltered:\n' \
                         '  "%s"' % oldlog.split('\n')[0]
-                    raise HookStatus(result=-ERROR)
+                    raise HookStatus(-ERROR)
 
     def _verify_rth_deliver(self):
         # check that source revision are ordered integers
