@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 # trac-commit-hook
 # ----------------------------------------------------------------------------
@@ -19,18 +20,14 @@
 
 from ConfigParser import ConfigParser
 from datetime import datetime
-from optparse import OptionParser
 from pysvn import Transaction
 from repository_hook_system.errors import HookStatus
 from repproxy import RepositoryProxy
-from trac.env import open_environment
-from trac.resource import ResourceNotFound
 from trac.ticket import Ticket, Milestone
 from trac.ticket.notification import TicketNotifyEmail
 from trac.util.datefmt import utc, to_timestamp, to_datetime
 import os
 import re
-import string
 import sys
 
 
@@ -76,7 +73,6 @@ config_path = os.environ.get('ACCESS_CONF_PATH') or \
     '/local/var/svn/config/access.conf'
 vendor_directory = '/vendor'
 
-#
 # Milestones
 #
 EXCLUDED_MILESTONES = [u'Unclassified']
@@ -107,6 +103,8 @@ class CommitHook(object):
                  rev=None,
                  txn=None,
                  rep=None):
+        self.env = env
+
         # Initialization
         self._init_proxy(rep, rev, txn)
         if rev:
@@ -120,8 +118,7 @@ class CommitHook(object):
         if not os.path.isdir(os.environ['PYTHON_EGG_CACHE']):
             raise AssertionError("Invalid egg cache directory: %s" %
                                  os.environ['PYTHON_EGG_CACHE'])
-        self.env = env  # @@ SDopen_environment(project)
-        # @@ SD to delete self.env.get_repository()
+
         bre = self.env.config.get('revtree', 'branch_re')
         self.bcre = re.compile(bre)
 
@@ -473,7 +470,7 @@ class PreCommitHook(CommitHook):
                 self.finalize(ERROR)
         project = self.project.replace(self.project.split('/')[-1], project)
         try:
-            extenv = open_environment(project)
+            extenv = self.env  # open_environment(project)
         except IOError:
             print>>sys.stderr, 'Invalid external project'
             self.finalize(ERROR)

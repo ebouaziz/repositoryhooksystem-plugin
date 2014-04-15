@@ -96,7 +96,10 @@ class TestSuiteEnvironment(SvnFunctionalTestEnvironment):
                                           os.path.join(plugins_path,
                                                        'trac_hook.py'))
         # Python PATH
-        python_path = trac_dir
+        python_path = os.environ.get('PYTHONPATH', trac_dir)
+
+        # Python used to start trac env
+        trac_python = os.environ.get('TRAC_PYTHON', 'python')
 
         # Post commit hook
         post_commit = '#!/bin/sh\n' \
@@ -106,12 +109,14 @@ class TestSuiteEnvironment(SvnFunctionalTestEnvironment):
                       'export PYTHON_EGG_CACHE=%s\n' \
                       'export PYTHONPATH=%s\n' \
                       'TRAC_ENV=%s\n' \
-                      'python $SCRIPT --hook=post-commit --user=admin ' \
+                      '%s $SCRIPT --hook=post-commit --user=admin ' \
                       '--project=$TRAC_ENV --repository=$REPOS svn ' \
                       '--revision=$REV' % (trac_hook_script,
                                            egg_cache_path,
                                            python_path,
-                                           trac_env)
+                                           trac_env,
+                                           trac_python)
+
         hook_path = os.path.join(svn_hooks_path, 'post-commit')
         with open(hook_path, 'wt') as fd:
             fd.write(post_commit)
@@ -125,11 +130,13 @@ class TestSuiteEnvironment(SvnFunctionalTestEnvironment):
                      'export PYTHON_EGG_CACHE=%s\n' \
                      'export PYTHONPATH=%s\n' \
                      'TRAC_ENV=%s\n' \
-                     'python $SCRIPT --hook=pre-commit --user=admin ' \
+                     '%s $SCRIPT --hook=pre-commit --user=admin ' \
                      '--project=$TRAC_ENV --repository=$REPOS svn ' \
                      '--transaction=$TXN' % (trac_hook_script,
                                              egg_cache_path,
-                                             python_path, trac_env)
+                                             python_path,
+                                             trac_env,
+                                             trac_python)
         hook_path = os.path.join(svn_hooks_path, 'pre-commit')
         with open(hook_path, 'wt') as fd:
             fd.write(pre_commit)

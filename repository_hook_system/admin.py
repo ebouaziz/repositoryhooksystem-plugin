@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 """
 RepositoryHookAdmin:
 admin panel interface for controlling hook setup and listeners

@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 """
 Repository Change Listener plugin for trac
 
@@ -11,71 +13,57 @@ from repository_hook_system.errors import HookStatus
 from repository_hook_system.interface import IRepositoryChangeListener
 from trac.core import *
 from trac.env import open_environment
+from trac.util.text import exception_to_unicode, to_unicode
 import os
 import sys
 
 
-
 class RepositoryChangeListener(object):
-    # XXX this doesn't need to be a class...yet!
-
     def __init__(self):
-        """
-        * project : path to the trac project environment
-        * hook : name of the hook called from
-        * args : arguments for the particular implementation of IRepositoryChangeListener
-        """
+        super(RepositoryChangeListener, self).__init__()
 
     def process(self, env, project, hook, options):
-        # open the trac environment
-        #env = open_environment(project)
         self.env = env
-        repo = env.get_repository()
-        repo.sync()
 
         # find the active listeners
         listeners = ExtensionPoint(IRepositoryChangeListener).extensions(env)
 
         # find the listener for the given repository type and invoke the hook
+        status = []
         for listener in listeners:
             if env.config.get('trac', 'repository_type') in listener.type():
-                subscribers = listener.subscribers(hook)
+                # Listener prepare hook context
+                try:
+                    listener.prepare_hook_ctx(**vars(options))
+                except Exception as e:
+                    self.env.log.error(exception_to_unicode(e, traceback=True))
+                    return False
 
-                status = []
+                self.env.log.debug(to_unicode('Call listener subscribers ' \
+                                              'for hook=%s' % hook))
+
+                # Invoke subscriber for this hook
+                subscribers = listener.subscribers(hook)
                 for subscriber in subscribers:
-                    self.env.log.debug("Call subscriber='%s'" % str(subscriber))
                     try:
+                        self.env.log.debug(to_unicode('Call subscribers ' \
+                                                      'for hook=%s' % hook))
+
                         subscriber.invoke(**vars(options))
-                    except HookStatus as excpt:
-                        status.append(excpt.status)
+                    # Hook status
+                    except HookStatus as e:
+                        status.append(e.status)
+                    # Other exceptions
+                    except Exception as e:
+
+                        self.env.log.info(exception_to_unicode(e,
+                                                               traceback=True))
+                        status.append(1)  # Force an error code
         return not any(status)
+
 
 def filename():
     return os.path.abspath(__file__.rstrip('c'))
-
-
-def command_line(projects, hook, *args):
-    """return a generic command line for invoking this file"""
-
-    # arguments to the command line
-    # XXX this could be returned as a list, if there is a reason to do so
-    retval = [sys.executable, filename()]
-
-    # enable passing just one argument
-    if isinstance(projects, basestring):
-        projects = [projects]
-
-    # append the projects to the command line
-    for project in projects:
-        retval.extend(['-p', project])
-
-    # add the hook
-    retval.extend(['--hook', hook])
-
-    # add the arguments
-    retval.extend(args)
-
-    return ' '.join(retval)
 
 
 def option_parser():
@@ -159,8 +147,10 @@ if __name__ == '__main__':
     # Get command line options
     options = _parse_options()
 
+    env = open_environment(options.project)
+
     rcl = RepositoryChangeListener()
-    if rcl.process(options.project, options.hook, options):
+    if rcl.process(env, options.project, options.hook, options):
         status = 0
     else:
         status = 1

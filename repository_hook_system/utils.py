@@ -1,5 +1,7 @@
+# -*- coding: utf-8 -*-
+
 """
-generic utilities needed for the RepositoryHookSystem package;
+Generic utilities needed for the RepositoryHookSystem package;
 ideally, these would be part of python's stdlib, but until then,
 roll one's own
 """

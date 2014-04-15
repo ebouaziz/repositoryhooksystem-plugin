@@ -1,6 +1,6 @@
 from setuptools import find_packages, setup
 
-version='0.1.4'
+version = '0.1.5'
 
 setup(name='RepositoryHookSystem',
       version=version,
@@ -12,15 +12,13 @@ setup(name='RepositoryHookSystem',
       license="GPL",
       packages=find_packages(exclude=['ez_setup', 'examples', 'tests*']),
       include_package_data=True,
-      package_data={'repository_hook_system': [ 'templates/*']},
+      package_data={'repository_hook_system': ['templates/*']},
       zip_safe=False,
       install_requires=['python-dateutil'],
-      entry_points = """
+      entry_points="""
       [trac.plugins]
       repository_hook_system.neoticketchanger = repository_hook_system.neoticketchanger
       repository_hook_system.listener = repository_hook_system.listener
       repository_hook_system.admin = repository_hook_system.admin
       repository_hook_system.svnhooksystem.svnhooksystem = repository_hook_system.svnhooksystem.svnhooksystem
-      """,
-      )
-
+      """)

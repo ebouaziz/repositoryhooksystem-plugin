@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 # trac-revprop-hook
 # ----------------------------------------------------------------------------
@@ -24,7 +25,6 @@
 
 from .repproxy import RepositoryProxy
 from ConfigParser import ConfigParser
-from optparse import OptionParser
 from repository_hook_system.errors import HookStatus
 import os
 import re

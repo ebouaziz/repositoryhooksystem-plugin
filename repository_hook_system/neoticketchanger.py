@@ -1,5 +1,7 @@
+# -*- coding: utf-8 -*-
+
 """
-annotes and closes tickets based on an SVN commit message;
+Annotes and closes tickets based on an SVN commit message;
 port of http://trac.edgewall.org/browser/trunk/contrib/trac-post-commit-hook
 """
 
