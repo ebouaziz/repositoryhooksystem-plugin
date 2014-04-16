@@ -26,6 +26,7 @@ from repproxy import RepositoryProxy
 from trac.ticket import Ticket, Milestone
 from trac.ticket.notification import TicketNotifyEmail
 from trac.util.datefmt import utc, to_timestamp, to_datetime
+from trac.env import open_environment
 import os
 import re
 import sys
@@ -470,7 +471,7 @@ class PreCommitHook(CommitHook):
                 self.finalize(ERROR)
         project = self.project.replace(self.project.split('/')[-1], project)
         try:
-            extenv = self.env  # open_environment(project)
+            extenv = open_environment(project)
         except IOError:
             print>>sys.stderr, 'Invalid external project'
             self.finalize(ERROR)
