@@ -37,7 +37,6 @@ class RepositoryChangeListener(object):
                     listener.prepare_hook_ctx(**vars(options))
                 except Exception as e:
                     self.env.log.error(exception_to_unicode(e, traceback=True))
-                    return False
 
                 self.env.log.debug(to_unicode('Call listener subscribers ' \
                                               'for hook=%s' % hook))
