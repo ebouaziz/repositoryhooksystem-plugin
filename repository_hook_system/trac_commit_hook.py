@@ -20,7 +20,6 @@
 
 from ConfigParser import ConfigParser
 from datetime import datetime
-from pysvn import Transaction
 from repository_hook_system.errors import HookStatus
 from repproxy import RepositoryProxy
 from trac.ticket import Ticket, Milestone
@@ -31,8 +30,6 @@ import os
 import re
 import sys
 
-
-# Use pysvn for later development, as it is easier to understand
 
 OK = 0
 ERROR = 1
@@ -374,7 +371,6 @@ class PreCommitHook(CommitHook):
         Initialize the proxy with the specified transaction
         '''
         self.proxy = RepositoryProxy(rep, txn)
-        self.transaction = Transaction(rep, txn)
         self.youngest = self.proxy.get_youngest_revision()
         if self.youngest == 0:
             raise HookStatus(OK)
@@ -462,19 +458,22 @@ class PreCommitHook(CommitHook):
         '''
         Update only svn:externals
         '''
-        # check if changes affects only svn properties
-        for path, values in self.transaction.changed().items():
-            if not self.transaction.propget(externals_prop_name, path) \
-                    and not self.transaction.propget(mergeinfo_prop_name, path):
-                print>>sys.stderr, 'Not a valid %s change for %s' \
-                    % (externals_prop_name, path)
-                self.finalize(ERROR)
+        for path, _ in self.proxy.get_txn_changed_paths():
+            if not self.proxy.get_txn_path_property(path, externals_prop_name)\
+               and not self.proxy.get_txn_path_property(path,
+                                                        mergeinfo_prop_name):
+                sys.stderr.write('Not a valid %s change for %s\n' \
+                    % (externals_prop_name, path))
+
+        # Open Trac project environment
         project = self.project.replace(self.project.split('/')[-1], project)
         try:
             extenv = open_environment(project)
-        except IOError:
-            print>>sys.stderr, 'Invalid external project'
+        except:
+            sys.stderr.write("Invalid external project='%s'\n" % project)
             self.finalize(ERROR)
+
+        # Get node corresponding to url specified in commit message
         try:
             # check project:url:rev exists
             extrepo = extenv.get_repository()
@@ -549,15 +548,15 @@ class PreCommitHook(CommitHook):
         try:
             item = change_gen.next()
         except StopIteration:
-            print >> sys.stderr, 'No deleted path in the submitted revision'
+            sys.stderr.write('No deleted path in the submitted revision\n')
             self.finalize(ERROR)
         try:
             change_gen.next()
         except StopIteration:
             pass
         else:
-            print >> sys.stderr, 'Termination of more than one branch is not ' \
-                                 'allowed'
+            sys.stderr.write('Termination of more than one branch is not ' \
+                              'allowed\n')
             self.finalize(ERROR)
         (path, change) = item
         if change != RepositoryProxy.PATH_DELETE:
@@ -635,7 +634,7 @@ class PreCommitHook(CommitHook):
 
         if dstbranch == trunk_directory:
             if not branch1.startswith(vendor_directory):
-                print >> sys.stderr, 'Cannot bring to trunk (from %s)' % branch1
+                sys.stderr.write('Cannot bring to trunk (from %s)\n' % branch1)
                 self.finalize(ERROR)
             else:
                 # No ticket to update from a vendor merge

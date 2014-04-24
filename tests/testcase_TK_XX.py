@@ -10,7 +10,7 @@ Test Cases are coded as following:
 """
 
 from testcase_abstract import (TestCaseAbstract, TestFunctionalTestSuite,
-    TestCaseError)
+                               TestCaseError)
 from trac.tests.functional import *
 import inspect
 
@@ -360,6 +360,45 @@ class TK_07(TestCaseAbstract):
         self.verify_ticket_entry(ticket_id, rev, msg, sandbox_path)
 
 
+class TK_08(TestCaseAbstract):
+
+    """
+    Test name: TK_08, update svn:externals
+
+    Objective:
+        * Verify
+
+    Conditions:
+        * Repository structure:
+            * branches
+                * component (empty)
+            * sandboxes
+                * component (empty)
+            * trunk
+                * component (empty)
+            * vendor
+                * component (empty)
+
+    Pass Criteria:
+        * No error on commit
+    """
+
+    def runTest(self):
+        # Update trunk
+        branch_rev = self.svn_update('branches')
+
+        # Set svn:external property
+        self.svn_property_set('trunk', 'svn:externals',
+                              '%s/branches@%s misc' % \
+                              (self._testenv.repo_path_for_initenv(),
+                               branch_rev))
+
+        # REMARK: project is created under ../trac/testenv/trac by functional
+        # test framework so in commit message we indicate trac as project name
+        self.svn_commit('trunk',
+                        'Externals [trac:source:branches@%s]' % branch_rev)
+
+
 def functionalSuite(suite=None):
     if not has_svn:
         raise Exception("Missing python-subversion module")
@@ -392,6 +431,7 @@ def functionalSuite(suite=None):
         suite.addTest(TK_05())
         suite.addTest(TK_06())
         suite.addTest(TK_07())
+        suite.addTest(TK_08())
     return suite
 
 

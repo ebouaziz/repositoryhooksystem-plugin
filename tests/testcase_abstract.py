@@ -4,11 +4,11 @@
 from random import randint
 from subprocess import Popen, PIPE
 from xml.etree import ElementTree
+import os
 import re
 import urlparse
 import xml.etree.ElementTree as et
 from trac.tests.functional import *
-import os
 
 
 # Test case exception
@@ -374,6 +374,24 @@ class TestCaseAbstract(FunctionalTwillTestCaseSetup):
             args = e.args + (output, )
             raise Exception(*args)
         return int(rev)
+
+    def svn_property_set(self, path, property_name, property_value):
+        """
+
+        :param path: path on wich property must be set
+        :param property_name: property name
+        :param property_value: property value
+        """
+
+        cmd = ['svn', 'propset', property_name, property_value,
+               os.path.join(self._testenv.work_dir(), path)]
+
+        output = self._testenv.process_call(cmd, path=path)
+        try:
+            re.search(r"property 'svn:externals' set on '\.'", output).group(0)
+        except Exception as e:
+            args = e.args + (output, )
+            raise Exception(*args)
 
     def svn_merge(self, path, source, revs):
         """
