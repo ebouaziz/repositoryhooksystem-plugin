@@ -19,7 +19,7 @@
 # ----------------------------------------------------------------------------
 
 from ConfigParser import ConfigParser
-from datetime import datetime
+from datetime import datetime, timedelta
 from repository_hook_system.errors import HookStatus
 from repproxy import RepositoryProxy
 from trac.ticket import Ticket, Milestone
@@ -1051,18 +1051,20 @@ class PostCommitHook(CommitHook):
 
         # Get all tickets related to these revisions
         tickets = self._collect_tickets(revisions, srcbranch)
-        if tickets:
-            log = "%s ticket(s) %s" % (self.log,
-                                       " ".join(['#%s' % k for k in tickets.keys()]))
-            self._update_log(log)
-
         for tktid in tickets:
             ticket = Ticket(self.env, int(tktid))
             ticket.save_changes(self.author,
                                 'Brought in [%s] (from [source:%s@%s %s] '
                                 'to [source:%s@%s %s])' %
                                 (self.rev, srcbranch, rev1, srcbranch,
-                                 dstbranch, self.rev, dstbranch), self.now)
+                                 dstbranch, self.rev, dstbranch), self.now +
+                                timedelta(seconds=1))
+        if tickets:
+            log = "%s ticket(s) %s" % (self.log,
+                                       " ".join(['#%s' % k for k in
+                                                 tickets.keys()]))
+            self._update_log(log)
+
         return OK
 
     def _cmd_reverts(self, rev1, rev2, force, recursive=False):
@@ -1112,10 +1114,6 @@ class PostCommitHook(CommitHook):
             print >> sys.stderr, rev1, logmsg
             self.proxy.set_revision_log_message(int(rev1), logmsg)
 
-            # Trac side update revision log
-            repo = self.env.get_repository()
-            repo.sync_changeset(self.rev)
-
             # delete rth:bring or rth:deliver
             if logmsg.startswith('Delivers'):
                 self.proxy.set_revision_property(int(rev1), deliver_prop_name,
@@ -1123,6 +1121,10 @@ class PostCommitHook(CommitHook):
             elif logmsg.startswith('Brings'):
                 self.proxy.set_revision_property(int(rev1), bring_prop_name,
                                                  None)
+
+            # Trac side update revision log
+            repo = self.env.get_repository()
+            repo.sync_changeset(self.rev)
 
         return OK
 
