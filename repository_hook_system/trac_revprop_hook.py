@@ -87,7 +87,7 @@ class RevpropHook(object):
                 # deletion
                 if func and self.action == 'D':
                     raise HookStatus(OK)
-                if func():
+                if not func():
                     print >> sys.stderr, 'Invalid value for property %s: %s' % \
                                          (self.name, self.value)
                     raise HookStatus(-ERROR)
