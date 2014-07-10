@@ -283,16 +283,16 @@ class CommitHook(object):
                 bring_revs = bring_prop.split(',')
                 subticket_dict = self._collect_tickets(bring_revs, branchname)
                 ticket_dict.update(subticket_dict)
-            else:
-                rev_log = self.proxy.get_revision_log_message(int(rev))
-                rev_author = self.proxy.get_revision_author(int(rev))
-                mo = ticket_cmd_pattern.match(rev_log)
-                if mo:
-                    tkid = int(mo.group('ticket'))
-                    if tkid in ticket_dict:
-                        ticket_dict[tkid].append([rev_author, rev_log])
-                    else:
-                        ticket_dict[tkid] = [[rev_author, rev_log]]
+
+            rev_log = self.proxy.get_revision_log_message(int(rev))
+            rev_author = self.proxy.get_revision_author(int(rev))
+            mo = ticket_cmd_pattern.match(rev_log)
+            if mo:
+                tkid = int(mo.group('ticket'))
+                if tkid in ticket_dict:
+                    ticket_dict[tkid].append([rev_author, rev_log])
+                else:
+                    ticket_dict[tkid] = [[rev_author, rev_log]]
         return ticket_dict
 
     def _is_txn_with_multiple_branches(self):
