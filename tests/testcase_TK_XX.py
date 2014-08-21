@@ -135,8 +135,6 @@ class TK_03(TestCaseAbstract):
         * Expected ticket messages:
             * (In [x]) Creates tx for #1
             * (In [x]) Refs #x, Add driver.py module
-        * Delivers error message displayed:
-            * Cannot deliver to /vendor/component branch
     """
 
     def runTest(self):
@@ -147,25 +145,27 @@ class TK_03(TestCaseAbstract):
         cset = deliver_rev
         self.svn_merge('trunk', 'trunk', (-1 * cset, ))
 
-        # Commit reverts
-        commit_msg = 'Reverts [%s]' % cset
-        rev = self.svn_commit('trunk', commit_msg)
+        with self.assertRaises(TestCaseError) as cm:
+            # Commit reverts
+            commit_msg = 'Reverts [%s]' % cset
+            self.svn_commit('trunk', commit_msg)
 
-        # Get change set message
-        cset_msg = self.svn_log_rev('trunk', cset)
+            msg = cm.exception.message
+            expected_msg = 'Commit blocked by pre-commit hook'
+            self.assertFalse(msg.find(expected_msg) == -1,
+                             msg="Missing error message='%s', get " \
+                             "message='%s'" % (expected_msg, msg))
 
-        # Verify revision log
-        msg = cset_msg.splitlines()[0]
-        commit_msg = r"Reverts [%s] (''was: %s...'')" % (cset, msg)
-        self.verify_log_rev('trunk', commit_msg, rev)
+            expected_msg = 'No known action in log message !'
+            self.assertFalse(msg.find(expected_msg) == -1,
+                             msg="Missing error message='%s', get " \
+                             "message='%s'" % (expected_msg, msg))
 
-        # Get revision log of trunk delivers
-        msg = self.svn_log_rev('trunk', deliver_rev)
-        msg = msg.splitlines()[0]
+        os.system("rm -r %s" % os.path.join(self._testenv.work_dir()))
+        os.mkdir(self._testenv.work_dir())
 
-        # Verify ticket entry
-        commit_msg = 'Reverted in [%s] in /trunk  (was: %s)' % (rev, msg)
-        self.verify_ticket_entry(ticket_id, rev, commit_msg, 'trunk')
+        # checkout fresh copy
+        self.svn_co()
 
 
 class TK_04(TestCaseAbstract):
@@ -226,7 +226,7 @@ class TK_05(TestCaseAbstract):
     Test name: TK_05, case delivers with invalid ticket component Triage
 
     Objective:
-        * Verify delivery is jrejected by pre-commit hook
+        * Verify delivery is rejected by pre-commit hook
 
     Conditions:
         * Repository structure:
@@ -385,6 +385,8 @@ class TK_08(TestCaseAbstract):
 
     def runTest(self):
         # Update trunk
+        self.svn_update('')
+
         branch_rev = self.svn_update('branches')
 
         # Set svn:external property

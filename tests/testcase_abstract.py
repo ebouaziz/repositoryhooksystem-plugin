@@ -4,7 +4,6 @@
 from random import randint
 from subprocess import Popen, PIPE
 from xml.etree import ElementTree
-import os
 import re
 import urlparse
 import xml.etree.ElementTree as et
@@ -277,6 +276,12 @@ class TestCaseAbstract(FunctionalTwillTestCaseSetup):
         self.verify_ticket_entry(ticket_id, rev, msg, 'trunk')
 
         return (ticket_id, rev)
+
+    def svn_co(self, path=''):
+        cmd = ['svn', 'co',
+               self._testenv.repo_url(),
+               os.path.join(self._testenv.work_dir(), path)]
+        self._testenv.process_call(cmd)
 
     def svn_cp(self, src, dest, msg):
         """

@@ -40,7 +40,7 @@ ERROR = 1
 ticket_cmd_pattern = \
     re.compile(r'^(?P<action>Refs|Closes|Fixes)\s+#(?P<ticket>[0-9]+)')
 changeset_cmd_pattern = \
-    re.compile(r'^(?P<action>Delivers|Brings|Reverts)(?P<force>\!)?\s+'
+    re.compile(r'^(?P<action>Delivers|Brings)(?P<force>\!)?\s+'
                r'\[(?P<first>\d+)(?::(?P<second>\d+))?\]([^:]|$)')
 create_pattern = \
     re.compile(r'^(?P<action>Creates)\s+[^#]*(#(?P<ticket>\d+)([\W]|$))?')

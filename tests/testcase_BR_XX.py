@@ -9,6 +9,8 @@ Test Cases are coded as following:
         XX: test number.
 """
 
+import os
+import unittest
 from testcase_abstract import TestCaseAbstract, TestFunctionalTestSuite
 from trac.tests.functional import *
 import inspect

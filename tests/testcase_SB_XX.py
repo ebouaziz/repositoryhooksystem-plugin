@@ -146,7 +146,7 @@ class SB_03(TestCaseAbstract):
         sandbox_path = 'sandboxes/t%s' % ticket_id
 
         commands = ['Creates', 'Refs', 'Closes', 'Fixes', 'Delivers', 'Brings',
-                    'Reverts', 'Terminates', 'Externals']
+                    'Terminates', 'Externals']
 
         for cmd in commands:
             with self.assertRaises(TestCaseError) as cm:
