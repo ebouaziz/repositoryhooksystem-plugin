@@ -92,8 +92,7 @@ class CommitHook(object):
                     'refs': '_cmd_refs'}
 
     _changeset_cmds = {'delivers': '_cmd_delivers',
-                       'brings': '_cmd_brings',
-                       'reverts': '_cmd_reverts'}
+                       'brings': '_cmd_brings'}
 
     def __init__(self,
                  env,
