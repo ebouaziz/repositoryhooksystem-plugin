@@ -73,7 +73,9 @@ class RevpropHook(object):
                 self._update_trac()
             raise HookStatus(0)
 
-        if type == 'svn':
+        if type == 'neo' and prop == 'prod':
+            raise HookStatus(OK)
+        elif type == 'svn':
             if prop == 'log':
                 self._verify_log_msg()
                 raise HookStatus(0)
