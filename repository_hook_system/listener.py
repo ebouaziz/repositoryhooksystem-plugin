@@ -54,8 +54,7 @@ class RepositoryChangeListener(object):
                         status.append(e.status)
                     # Other exceptions
                     except Exception as e:
-
-                        self.env.log.info(exception_to_unicode(e,
+                        self.env.log.error(exception_to_unicode(e,
                                                                traceback=True))
                         status.append(1)  # Force an error code
         return not any(status)
