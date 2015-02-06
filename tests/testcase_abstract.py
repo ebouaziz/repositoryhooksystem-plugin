@@ -215,10 +215,10 @@ class TestSuiteEnvironment(SvnFunctionalTestEnvironment):
                      close_fds=close_fds, cwd=cwd, env=environ)
         (data, error) = proc.communicate()
         if proc.wait():
-            logfile.write(error)
+            self.logfile.write(error)
             raise TestCaseError('%s' % error)
 
-        logfile.write(data)
+        self.logfile.write(data)
         return data
 
 
