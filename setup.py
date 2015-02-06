@@ -1,6 +1,6 @@
 from setuptools import find_packages, setup
 
-version = '0.1.12'
+version = '0.1.13'
 
 setup(name='RepositoryHookSystem',
       version=version,
@@ -14,7 +14,7 @@ setup(name='RepositoryHookSystem',
       include_package_data=True,
       package_data={'repository_hook_system': ['templates/*']},
       zip_safe=False,
-      install_requires=['python-dateutil'],
+      install_requires=['python-dateutil', 'Trac >= 1.0.0'],
       entry_points="""
       [trac.plugins]
       repository_hook_system.neoticketchanger = repository_hook_system.neoticketchanger
