@@ -51,7 +51,8 @@ class RevpropHook(object):
             raise AssertionError("Invalid egg cache directory: %s" %
                                  os.environ['PYTHON_EGG_CACHE'])
         self.env = env
-        self.repospath = self.env.config.get('trac', 'repository_dir')
+        self.repospath = self.env.config.get('trac', 'repository_dir') or \
+                         self.env.config.get('repositories', '.dir')
         self.rev = int(rev)
         self.name = name
         self.value = value
