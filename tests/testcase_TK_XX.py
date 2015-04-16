@@ -255,7 +255,7 @@ class TK_05(TestCaseAbstract):
                          msg="Missing error message='%s', get "
                          "message='%s'" % (expected_msg, msg))
 
-        expected_msg = 'No valid component, delivery rejected'
+        expected_msg = 'Please correct component of #'
         self.assertFalse(msg.find(expected_msg) == -1,
                          msg="Missing error message='%s', get "
                          "message='%s'" % (expected_msg, msg))
@@ -296,7 +296,7 @@ class TK_06(TestCaseAbstract):
                          msg="Missing error message='%s', get "
                          "message='%s'" % (expected_msg, msg))
 
-        expected_msg = 'No valid component, delivery rejected'
+        expected_msg = 'Please correct component of #'
         self.assertFalse(msg.find(expected_msg) == -1,
                          msg="Missing error message='%s', get "
                          "message='%s'" % (expected_msg, msg))
@@ -426,14 +426,14 @@ def functionalSuite(suite=None):
 
     if not suite:
         suite = TestFunctionalTestSuite()
-        #suite.addTest(TK_01())
-        #suite.addTest(TK_02())
-        #suite.addTest(TK_03())
-        #suite.addTest(TK_04())
+        suite.addTest(TK_01())
+        suite.addTest(TK_02())
+        suite.addTest(TK_03())
+        suite.addTest(TK_04())
         suite.addTest(TK_05())
-        #suite.addTest(TK_06())
-        #suite.addTest(TK_07())
-        #suite.addTest(TK_08())
+        suite.addTest(TK_06())
+        suite.addTest(TK_07())
+        suite.addTest(TK_08())
     return suite
 
 

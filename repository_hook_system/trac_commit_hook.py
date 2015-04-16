@@ -116,10 +116,10 @@ class CommitHook(object):
         self.config = self.env.config
 
         # Initialization
-        self._fbden_cp_on_close = \
-            [c.strip() for c in self.forbidden_components_on_close.split(',')]
-        self._fbden_ms_on_close = \
-            [m.strip() for m in self.forbidden_milestones_on_close.split(',')]
+        self._fbden_cp_on_close = [
+            c.strip() for c in self.forbidden_components_on_close.split(',')]
+        self._fbden_ms_on_close = [
+            m.strip() for m in self.forbidden_milestones_on_close.split(',')]
         self._init_proxy(rep, rev, txn)
         if rev:
             self.rev = int(rev)
@@ -1077,7 +1077,8 @@ class PostCommitHook(CommitHook):
         return OK
 
     def _cmd_creates(self, ticket_str):
-        self.env.log.debug("> post_cmd_creates, %s", ticket_str)
+        self.env.log.debug("> post_cmd_creates #%s, rev=%s",
+                           ticket_str, self.rev)
         if ticket_str:
             ticket_id = int(ticket_str)
             ticket_msg = '(In [%d]) %s' % (self.rev, self.log)
@@ -1096,9 +1097,12 @@ class PostCommitHook(CommitHook):
                     ticket.save_changes(self.author, ticket_msg, self.now)
             except Exception as e:
                 from trac.util import get_last_traceback
+                self.env.log.error("Error post_cmd_create('%s'):\n%s",
+                                   ticket_str, get_last_traceback())
                 print>>sys.stderr, 'Unexpected error while processing ticket' \
                                    ' ID %d: %s' % (ticket_id, e)
                 print >>sys.stderr, 'Traceback:\n', get_last_traceback()
+        self.env.log.debug("< post_cmd_creates")
         return OK
 
     def _cmd_closes(self, ticket_id, force):

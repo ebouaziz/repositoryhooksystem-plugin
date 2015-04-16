@@ -316,7 +316,7 @@ class TestCaseAbstract(FunctionalTwillTestCaseSetup):
         # Update repository root
         self.svn_update('')
 
-        return
+        return int(rev)
 
     def svn_add(self, path, filename, data):
         """
