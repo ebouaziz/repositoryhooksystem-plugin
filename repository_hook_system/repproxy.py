@@ -93,7 +93,7 @@ class RepositoryProxy(object):
         chgpaths = fs.svn_fs_paths_changed(root, self.pool)
         for chgpath in chgpaths:
             (srcrev, srcpath) = fs.svn_fs_copied_from(root, chgpath, self.pool)
-            #print >>sys.stderr, "chgpath: %s -> %s @ %d" % (chgpath, srcpath, srcrev)
+            print >>sys.stderr, "chgpath: %s -> %s @ %d" % (chgpath, srcpath, srcrev)
             if srcrev > 0 and srcpath is not None:
                 return (srcrev, srcpath)
         return None
@@ -102,7 +102,8 @@ class RepositoryProxy(object):
         if not self.txn:
             return None
         root = self.get_txn_root()
-        return self._get_changed_paths(root)
+        r = self._get_changed_paths(root)
+        return r
 
     def get_txn_path_property(self, path, propname):
         if not self.txn:
@@ -116,7 +117,7 @@ class RepositoryProxy(object):
         chgpaths = fs.svn_fs_paths_changed(root, self.pool)
         for chgpath in chgpaths:
             (srcrev, srcpath) = fs.svn_fs_copied_from(root, chgpath, self.pool)
-            #print >>sys.stderr, "chgpath: %s -> %s @ %d" % (chgpath, srcpath, srcrev)
+            print >>sys.stderr, "chgpath: %s -> %s @ %d" % (chgpath, srcpath, srcrev)
             if srcrev > 0 and srcpath is not None:
                 return (srcrev, srcpath)
         return None

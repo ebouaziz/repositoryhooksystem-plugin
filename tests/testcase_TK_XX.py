@@ -338,7 +338,7 @@ class TK_07(TestCaseAbstract):
         vendor_rev = self.svn_commit('vendor/component', commit_msg)
         self.verify_log_rev('vendor/component', commit_msg, vendor_rev)
 
-        # Create sandboxe
+        # Create sandbox
         summary = 'ticket for sandbox'
         ticket_id = self._tester.create_ticket(summary=summary,
                                                info={'keywords': ""})
@@ -426,14 +426,14 @@ def functionalSuite(suite=None):
 
     if not suite:
         suite = TestFunctionalTestSuite()
-        suite.addTest(TK_01())
-        suite.addTest(TK_02())
-        suite.addTest(TK_03())
-        suite.addTest(TK_04())
+        #suite.addTest(TK_01())
+        #suite.addTest(TK_02())
+        #suite.addTest(TK_03())
+        #suite.addTest(TK_04())
         suite.addTest(TK_05())
-        suite.addTest(TK_06())
-        suite.addTest(TK_07())
-        suite.addTest(TK_08())
+        #suite.addTest(TK_06())
+        #suite.addTest(TK_07())
+        #suite.addTest(TK_08())
     return suite
 
 

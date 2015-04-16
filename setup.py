@@ -18,6 +18,7 @@ setup(name='RepositoryHookSystem',
       entry_points="""
       [trac.plugins]
       repository_hook_system.neoticketchanger = repository_hook_system.neoticketchanger
+      repository_hook_system.ticket_validator = repository_hook_system.ticket_validator
       repository_hook_system.listener = repository_hook_system.listener
       repository_hook_system.admin = repository_hook_system.admin
       repository_hook_system.svnhooksystem.svnhooksystem = repository_hook_system.svnhooksystem.svnhooksystem

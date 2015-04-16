@@ -5,6 +5,7 @@ from random import randint
 from subprocess import Popen, PIPE
 from xml.etree import ElementTree
 import re
+import sys
 import urlparse
 import xml.etree.ElementTree as et
 from trac.tests.functional import *
@@ -13,7 +14,6 @@ from trac.tests.functional import *
 # Test case exception
 class TestCaseError(Exception):
     pass
-
 
 class TestSuiteEnvironment(SvnFunctionalTestEnvironment):
 
@@ -38,6 +38,8 @@ class TestSuiteEnvironment(SvnFunctionalTestEnvironment):
         :type url:
         """
         SvnFunctionalTestEnvironment.__init__(self, dirname, port, url)
+        if not getattr(self, "logfile", None):
+            self.logfile = logfile
 
         # Add component
         self._tracadmin('component', 'add', 'Triage',
@@ -187,7 +189,7 @@ class TestSuiteEnvironment(SvnFunctionalTestEnvironment):
         """
         SvnFunctionalTestEnvironment.post_create(self, env)
 
-        # Init repository struture
+        # Init repository structure
         self._init_repository()
 
         # Init trac.ini configuration
@@ -211,6 +213,7 @@ class TestSuiteEnvironment(SvnFunctionalTestEnvironment):
 
         environ = environ or os.environ.copy()
         environ['LC_ALL'] = 'C'  # Force English messages
+        print '### run', args
         proc = Popen(args, stdout=PIPE, stderr=PIPE,
                      close_fds=close_fds, cwd=cwd, env=environ)
         (data, error) = proc.communicate()
@@ -313,7 +316,7 @@ class TestCaseAbstract(FunctionalTwillTestCaseSetup):
         # Update repository root
         self.svn_update('')
 
-        return int(rev)
+        return
 
     def svn_add(self, path, filename, data):
         """
@@ -383,7 +386,7 @@ class TestCaseAbstract(FunctionalTwillTestCaseSetup):
     def svn_property_set(self, path, property_name, property_value):
         """
 
-        :param path: path on wich property must be set
+        :param path: path on which property must be set
         :param property_name: property name
         :param property_value: property value
         """
@@ -453,12 +456,12 @@ class TestCaseAbstract(FunctionalTwillTestCaseSetup):
 
     def verify_ticket_entry(self, ticket_id, revision, msg, title_path):
         """
-        This method is use to verify if an entry is propertly created, in
+        This method is used to verify if an entry is properly created, in
         a Trac ticket.
 
         :param ticket_id: ticket id
         :type ticket_id: str or int
-        :param revision: commite revision
+        :param revision: commit revision
         :type revision: str or int
         :param msg: commit message
         :type msg: str
@@ -472,7 +475,7 @@ class TestCaseAbstract(FunctionalTwillTestCaseSetup):
         xhtml = tc.get_browser().get_html()
         xhtml = re.sub(' xmlns="[^"]+"', '', xhtml, count=1)
 
-        # Hack to support unkown entities
+        # Hack to support unknown entities
         # cf. http://en.wikipedia.org/wiki/
         # List_of_XML_and_HTML_character_entity_references web page
         class AllEntities:
@@ -498,6 +501,8 @@ class TestCaseAbstract(FunctionalTwillTestCaseSetup):
         item = result[0]
         ticket_msg = ("".join(item.itertext())).replace('\n', '')
         ticket_msg = ticket_msg.encode('ascii', errors='ignore')
+        print >>sys.stderr, "actual ticket message:", ticket_msg
+        print >>sys.stderr, "expected ticket message:", msg
         if msg != ticket_msg.strip():
             raise TestCaseError("Invalid commit message=' %s' for "
                                 "ticket='%s'" % (ticket_msg, ticket_id))
@@ -532,6 +537,7 @@ class TestCaseAbstract(FunctionalTwillTestCaseSetup):
         # Creates sandbox from trunk/component
         commit_msg = 'Creates t%s for #%s' % (ticket_id, ticket_id)
         revision = self.svn_cp(branch_from, sandbox_path, commit_msg)
+        print >>sys.stderr, "revision", revision
         first_rev = revision
 
         # Verify revision log

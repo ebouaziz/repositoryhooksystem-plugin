@@ -23,6 +23,7 @@ from ConfigParser import ConfigParser
 from datetime import datetime, timedelta
 from repository_hook_system.errors import HookStatus
 from repproxy import RepositoryProxy
+from trac.config import Option
 from trac.ticket import Ticket, Milestone
 from trac.ticket.notification import TicketNotifyEmail
 from trac.util.datefmt import utc, to_timestamp, to_datetime
@@ -39,7 +40,8 @@ ERROR = 1
 # Patterns to match message logs
 #
 ticket_cmd_pattern = \
-    re.compile(r'^(?P<action>Refs|Closes|Fixes)\s+#(?P<ticket>[0-9]+)')
+    re.compile(r'^(?P<action>Refs|Closes|Fixes)(?P<force>\!)?\s+'
+               r'#(?P<ticket>[0-9]+)')
 changeset_cmd_pattern = \
     re.compile(r'^(?P<action>Delivers|Brings)(?P<force>\!)?\s+'
                r'\[(?P<first>\d+)(?::(?P<second>\d+))?\]([^:]|$)')
@@ -54,6 +56,7 @@ externals_pattern = \
                r':?source:?(?P<url>[a-zA-Z0-9\/._-]+)@(?P<rev>[0-9]+)\]')
 
 sandbox_pattern = re.compile(r'^/sandboxes/.*')
+branch_pattern = re.compile(r'^/branches/(?P<pname>\w+)-.+')
 ticket_pattern = re.compile(r'#(?P<ticket>\d+)')
 #
 # SVN properties
@@ -69,7 +72,7 @@ dev_branch_dirs = ['/sandboxes']
 admin_branch_dirs = ['/tags', '/branches', '/platforms']
 trunk_directory = '/trunk'
 config_path = os.environ.get('ACCESS_CONF_PATH') or \
-    '/local/var/svn/config/access.conf'
+    '/home/ebouaziz/tmp/toto/access.conf'
 vendor_directory = '/vendor'
 
 # Milestones
@@ -81,12 +84,19 @@ NA_MILESTONE = u'NotApplicable'
 
 class CommitHook(object):
 
-    '''
+    """
     The base class for pre and post -commit hooks
 
     Contains the base mechanism for parsing log messages looking for
     action keywords and some commun functions.
-    '''
+    """
+
+    forbidden_milestones_on_close = Option('ticket',
+        'forbidden_milestones_on_close', 'Next',
+        """A ticket cannot be closed if its milestone is in that list""")
+    forbidden_components_on_close = Option('ticket',
+        'forbidden_components_on_close', 'Triage, None',
+        """A ticket cannot be closed if its component is in that list""")
 
     _ticket_cmds = {'closes': '_cmd_closes',
                     'fixes': '_cmd_closes',
@@ -102,8 +112,14 @@ class CommitHook(object):
                  txn=None,
                  rep=None):
         self.env = env
+        # needed to use Options
+        self.config = self.env.config
 
         # Initialization
+        self._fbden_cp_on_close = \
+            [c.strip() for c in self.forbidden_components_on_close.split(',')]
+        self._fbden_ms_on_close = \
+            [m.strip() for m in self.forbidden_milestones_on_close.split(',')]
         self._init_proxy(rep, rev, txn)
         if rev:
             self.rev = int(rev)
@@ -150,13 +166,17 @@ class CommitHook(object):
         # Branch creation
         creation_cmd = create_pattern.search(self.log)
         if creation_cmd:
+            print >>sys.stderr, "Create 1", self.log
             cmd_dict = creation_cmd.groupdict()
+            print >>sys.stderr, "Create 2", cmd_dict
             rc = self._cmd_creates(cmd_dict.setdefault('ticket', None))
+            print >>sys.stderr, "Create 3"
             self.finalize(rc)
 
         # Changeset-related commands
         chgset_cmd = changeset_cmd_pattern.search(self.log)
         if chgset_cmd:
+            print >>sys.stderr, "CS 1", self.log
             cmd = chgset_cmd.group('action').lower()
             if cmd in CommitHook._changeset_cmds:
                 func = getattr(self, CommitHook._changeset_cmds[cmd])
@@ -170,12 +190,20 @@ class CommitHook(object):
 
         # Ticket-related commands
         ticket_cmd = ticket_cmd_pattern.search(self.log)
+        print >>sys.stderr, "Ticket 1", self.log
         if ticket_cmd:
+            print >>sys.stderr, "2"
             cmd = ticket_cmd.group('action').lower()
+            print >>sys.stderr, "3"
             if cmd in CommitHook._ticket_cmds:
+                print >>sys.stderr, "4"
                 func = getattr(self, CommitHook._ticket_cmds[cmd])
-                rc = func(int(ticket_cmd.group('ticket')))
+                print >>sys.stderr, "5", func
+                rc = func(int(ticket_cmd.group('ticket')),
+                          ticket_cmd.group('force') and True)
+                print >>sys.stderr, "6"
                 self.finalize(rc)
+                print >>sys.stderr, "7"
             else:
                 print>>sys.stderr, 'No supported action in log message !'
                 self.finalize(ERROR)
@@ -193,22 +221,26 @@ class CommitHook(object):
         print>>sys.stderr, 'No known action in log message !'
         self.finalize(ERROR)
 
-    def _next_milestone(self):
-        '''
+    def _next_milestone(self, project_name=None):
+        """
         Returns the next milestone (i.e. the first non-completed milestone by
         chronological order)
-        '''
+        """
         xms = EXCLUDED_MILESTONES + [TBD_MILESTONE]
-        ms = [m.name for m in Milestone.select(self.env, False)
-              if m.name not in xms]
+        candidates_ms = Milestone.select(self.env, False)
+        if project_name is None:
+            ms = [m.name for m in candidates_ms if m.name not in xms]
+        else:
+            ms = [m.name for m in candidates_ms if m.name not in xms
+                  and m.name.lower().startswith(project_name)]
         return ms and ms[0] or None
 
     def _collect_branch_revs(self, rev1, rev2):
-        '''
+        """
         Collect all revisions sitting on the branch between rev1 and rev2
 
         @return the revision list
-        '''
+        """
         if not rev1:
             print >> sys.stderr, 'Source revision not specified'
             self.finalize(ERROR)
@@ -257,7 +289,7 @@ class CommitHook(object):
         return revisions
 
     def _collect_tickets(self, revisions, branchname=None):
-        '''
+        """
         Build a dictionary of all tickets referenced by the revision list,
         following bring links
 
@@ -265,7 +297,7 @@ class CommitHook(object):
         @return a dictionary of tickets: the key is the ticket number,
                 the value is the list of revisions related to this ticket.
                 Each revision is itself a list [author, log]
-        '''
+        """
 
         ticket_dict = {}
         for rev in revisions:
@@ -303,9 +335,9 @@ class CommitHook(object):
         return False
 
     def _is_ticket_closed(self, ticket_id):
-        '''
+        """
         Check if a ticket is closed
-        '''
+        """
         try:
             ticket = Ticket(self.env, ticket_id)
             is_closed = ticket['status'] == 'closed'
@@ -315,26 +347,39 @@ class CommitHook(object):
             self.finalize(ERROR)
 
     def _is_ticket_open(self, ticket_id):
-        '''
+        """
         Check if a ticket is open
-        '''
+        """
         return not self._is_ticket_closed(ticket_id)
 
     def _is_ticket_invalid_component(self, ticket_id):
-        '''
+        """
         Check if component is set as "None" or "Triage"
-        '''
+        """
         try:
             ticket = Ticket(self.env, ticket_id)
-            return ticket['component'] in ['Triage', 'None']
+            self.env.log.debug("Component for #%s is %s", ticket_id,
+                               ticket['component'])
+            return ticket['component'] in self._fbden_cp_on_close
+        except Exception as e:
+            print >> sys.stderr, "Error: %s" % e
+            self.finalize(ERROR)
+
+    def _is_ticket_invalid_milestone(self, ticket_id):
+        """
+        Check if milestone is set as "Next"
+        """
+        try:
+            ticket = Ticket(self.env, ticket_id)
+            return ticket['milestone'] in self._fbden_ms_on_close
         except Exception as e:
             print >> sys.stderr, "Error: %s" % e
             self.finalize(ERROR)
 
     def _is_admin(self, author):
-        '''
-        Verify whether the author has administrator priviledges
-        '''
+        """
+        Verify whether the author has administrator privileges
+        """
         config = ConfigParser()
         if not os.path.isfile(config_path):
             raise AssertionError('Unable to find Subversion ACL for admins')
@@ -348,9 +393,9 @@ class CommitHook(object):
         return True
 
     def _is_branch_type(self, dir_path, branches):
-        '''
+        """
         Tell whether a directory is located inside a branch group or not
-        '''
+        """
         if not dir_path or not branches:
             return False
         for dev_br in branches:
@@ -358,6 +403,50 @@ class CommitHook(object):
                 return True
         return False
 
+    def _get_milestone_and_project(self):
+        """
+        Find branch the current transaction was copied from
+        Deduce the applicable milestone
+        Intended for _cmd_closes pre and post commit hooks
+        """
+        # current branch
+        if self.txn:
+            branch = self.proxy.find_txn_branch(self.bcre)
+        elif self.rev:
+            branch = self.proxy.find_revision_branch(self.rev, self.bcre)
+
+        # fetch revision history of the branch
+        history = [h for h in self.proxy.get_history(self.youngest, branch, None)]
+
+        # get branch it was created from
+        src = self.proxy.get_revision_copy_source(history[-1][0])
+        if src is None:
+            print >> sys.stderr, 'Cannot get branch copy source for (%s)' \
+                % history[-1][1]
+            self.finalize(ERROR)
+        src_rev, src_branch = src
+
+        # chose a milestone
+        project = None
+        if src_branch == trunk_directory:
+            # select opened milestone with earliest due date
+            milestone = self._next_milestone()
+        else:
+            # get project name from branch
+            mo = branch_pattern.match(src_branch)
+            if mo:
+                # select opened milestone with earliest due date that starts
+                # with projects name
+                project = mo.group('pname')
+                milestone = self._next_milestone(project)
+            else:
+                milestone = None
+
+        # if no milestone, use default value if defined in Trac config
+        if milestone is None:
+            milestone = self.env.config.get('ticket',
+                                      'default_closing_milestone', None)
+        return milestone, project
 
 class PreCommitHook(CommitHook):
 
@@ -488,6 +577,7 @@ class PreCommitHook(CommitHook):
         Check operation source and destination
         Copy import/symweek/symver properties from new branch
         '''
+        self.env.log.debug("> pre_cmd_creates %s", ticket_str)
         src = self.proxy.get_txn_copy_source()
         if not src:
             print >> sys.stderr, 'Cannot locate source revision ' \
@@ -517,6 +607,7 @@ class PreCommitHook(CommitHook):
 
         if self._is_admin(self.author) and \
                 self._is_branch_type(dstbranch, admin_branch_dirs):
+            self.env.log.debug("< pre_cmd_creates (admin)")
             return OK
 
         if not ticket_str:
@@ -529,6 +620,7 @@ class PreCommitHook(CommitHook):
             self.finalize(ERROR)
 
         if self._is_branch_type(dstbranch, dev_branch_dirs):
+            self.env.log.debug("< pre_cmd_creates (1)")
             return OK
         print >> sys.stderr, 'Admin ? %d' % self._is_admin(self.author)
         print >> sys.stderr, 'Branch type ? %d' % \
@@ -582,12 +674,7 @@ class PreCommitHook(CommitHook):
                 self.finalize(ERROR)
         return OK
 
-    def _cmd_closes(self, ticket_id):
-        '''
-        Ticket close
-        Check that the ticket is open
-        Check that the operation occurs in a branch
-        '''
+    def _pre_cmd_closes(self, ticket_id):
         if not self._is_ticket_open(ticket_id):
             print >> sys.stderr, 'The ticket %d mentionned in the log ' \
                 'message must be open.' % ticket_id
@@ -596,14 +683,55 @@ class PreCommitHook(CommitHook):
             print >> sys.stderr, 'Cannot apply changes to a non-branch dir' \
                                  ' (%s)' % dev_branch_dirs
             self.finalize(ERROR)
+
+    def _cmd_closes(self, ticket_id, force):
+        '''
+        Ticket close
+        Check that the component is set correctly
+        Check that the ticket is open
+        Check that the operation occurs in a branch
+        Find what branch the sandbox was copied from
+        Deduce the applicable milestone
+        '''
+        # check component
+        self.env.log.debug("> pre_cmd_closes")
+        if not self._is_admin(self.author) or not force:
+            print >>sys.stderr, "52"
+            if self._is_ticket_invalid_component(ticket_id):
+                print >> sys.stderr, 'Please correct component of #%d' \
+                                     % ticket_id
+                self.finalize(ERROR)
+            print >>sys.stderr, "53"
+
+        # check ticket closed and operation occurs in a branch
+        self._pre_cmd_closes(ticket_id)
+        print >>sys.stderr, "54"
+
+        # find original branch and target milestone
+        milestone, project = self._get_milestone_and_project()
+        print >>sys.stderr, "55"
+        if milestone is None and self._is_ticket_invalid_milestone(ticket_id):
+            print >>sys.stderr, "56"
+            if not self._is_admin(self.author) or not force:
+                print >>sys.stderr, "57"
+                if project:
+                    msg = "No defined next milestone for project '%s'" % project
+                else:
+                    msg = 'No defined next milestone'
+                print >> sys.stderr, msg
+                self.finalize(ERROR)
+        self.env.log.debug("< pre_cmd_closes")
         return OK
 
-    def _cmd_refs(self, ticket_id):
+    def _cmd_refs(self, ticket_id, force):
         '''
         Ticket reference
-        Same pre-conditions as closes
+        Same pre-conditions as closes except for the milestone processing
         '''
-        return self._cmd_closes(ticket_id)
+        self.env.log.debug("> pre_cmd_refs: #%s, %s" % (ticket_id, force))
+        self._pre_cmd_closes(ticket_id)
+        self.env.log.debug("< pre_cmd_refs")
+        return OK
 
     def _cmd_brings(self, rev1, rev2, force):
         '''
@@ -720,6 +848,7 @@ class PreCommitHook(CommitHook):
         Build consolidated log message
         '''
         # Get all revisions to deliver
+        self.env.log.debug("> pre_cmd_delivers [%s:%s]", rev1, rev2)
         revisions = self._collect_branch_revs(rev1, rev2)
         if not revisions:
             print >> sys.stderr, "Revisions %s %s %s" % (rev1, rev2, revisions)
@@ -807,7 +936,7 @@ class PreCommitHook(CommitHook):
         log += u'\n'.join([u' * #%s (%s%s): %s' %
                            (tid,
                             self._camel_case(
-                                Ticket(self.env, tid)['component']),
+                               Ticket(self.env, tid)['component']),
                                Ticket(self.env, tid)['component'],
                                Ticket(self.env, tid)['summary'])
                            for tid in tickets])
@@ -822,6 +951,7 @@ class PreCommitHook(CommitHook):
                                  'please fix up roadmap'
             self.finalize(ERROR)
 
+        self.env.log.debug("< pre_cmd_delivers")
         return OK
 
 
@@ -832,7 +962,7 @@ class TicketNotifyEmailEx(TicketNotifyEmail):
         self.excluded_rcpts = excluded_rcpts or []
 
     def send(self, torcpts, ccrcpts):
-        # Remove excludeds name from to sending mail list
+        # Remove excluded names from to sending mail list
         torcpts = [rcpt for rcpt in torcpts if rcpt not in self.excluded_rcpts]
 
         if torcpts or ccrcpts:
@@ -853,6 +983,7 @@ class PostCommitHook(CommitHook):
         if rev < 2:
             self.finalize(OK)
         self.proxy = RepositoryProxy(rep)
+        self.youngest = self.proxy.get_youngest_revision()
         return OK
 
     def _get_log(self):
@@ -946,6 +1077,7 @@ class PostCommitHook(CommitHook):
         return OK
 
     def _cmd_creates(self, ticket_str):
+        self.env.log.debug("> post_cmd_creates, %s", ticket_str)
         if ticket_str:
             ticket_id = int(ticket_str)
             ticket_msg = '(In [%d]) %s' % (self.rev, self.log)
@@ -969,47 +1101,60 @@ class PostCommitHook(CommitHook):
                 print >>sys.stderr, 'Traceback:\n', get_last_traceback()
         return OK
 
-    def _cmd_closes(self, ticketId):
+    def _cmd_closes(self, ticket_id, force):
         '''
         Ticket closes
         Add backlink to the revision in the ticket
         Close the ticket
         '''
+        self.env.log.debug("> post_cmd_closes, #%s force=%s", ticket_id, force)
         ticket_msg = "(In [%d]) %s" % (self.rev, self.log)
         # FIXME: replace self.now with the actual svn:date commit time
         # fix this in other script locations as well...
         commit_date = self.now
         try:
-            ticket = Ticket(self.env, ticketId)
+            milestone, project = self._get_milestone_and_project()
+            self.env.log.debug("  ms '%s', pj '%s'", milestone, project)
+            ticket = Ticket(self.env, ticket_id)
+            self.env.log.debug("got ticket")
+            if milestone is not None:
+                ticket['milestone'] = milestone
             ticket['status'] = 'closed'
             ticket['resolution'] = 'fixed'
             ticket.save_changes(self.author, ticket_msg, commit_date)
+            self.env.log.debug("saved ticket changes")
         except Exception as e:
             from trac.util import get_last_traceback
             print>>sys.stderr, 'Unexpected error while processing ticket ' \
-                               'ID %s: %s' % (ticketId, e)
+                               'ID %s: %s' % (ticket_id, e)
             print >>sys.stderr, 'Traceback:\n', get_last_traceback()
+            self.env.log.error("error %s", e)
+            self.env.log.error('Traceback:\n%s', get_last_traceback())
             return ERROR
         try:
             # we do not want a notification failure to prevent from
             # backing up the revision
+            self.env.log.debug("try notif")
             tn = TicketNotifyEmailEx(self.env, [self._get_author(), ])
             tn.notify(ticket, newticket=0, modtime=commit_date)
+            self.env.log.debug("sent notif")
         except Exception as e:
             from trac.util import get_last_traceback
             print>>sys.stderr, 'Unexpected error while processing ticket ' \
-                               'ID %s: %s' % (ticketId, e)
+                               'ID %s: %s' % (ticket_id, e)
             print >>sys.stderr, 'Traceback:\n', get_last_traceback()
+        self.env.log.debug("< post_cmd_closes")
         return OK
 
-    def _cmd_refs(self, ticketId):
+    def _cmd_refs(self, ticket_id, force):
         '''
         Ticket reference
         Add backlink to the revision in the ticket
         '''
+        self.env.log.debug("> post_cmd_refs #%s", ticket_id)
         ticket_msg = "(In [%d]) %s" % (self.rev, self.log)
         try:
-            ticket = Ticket(self.env, ticketId)
+            ticket = Ticket(self.env, ticket_id)
             ticket.save_changes(self.author, ticket_msg, self.now)
             tn = TicketNotifyEmailEx(self.env, [self._get_author(), ])
             tn.notify(ticket, newticket=0, modtime=self.now)
@@ -1017,7 +1162,7 @@ class PostCommitHook(CommitHook):
         except Exception as e:
             from trac.util import get_last_traceback
             print>>sys.stderr, 'Unexpected error while processing ticket ' \
-                               'ID %s: %s' % (ticketId, e)
+                               'ID %s: %s' % (ticket_id, e)
             print >>sys.stderr, 'Traceback:\n', get_last_traceback()
             return ERROR
 
@@ -1027,6 +1172,7 @@ class PostCommitHook(CommitHook):
         Add backlink to the revision in all related tickets
         '''
         # Get all revisions to bring
+        self.env.log.debug("> post_cmd_brings [%s:%s]", rev1, rev2)
         revisions = self._collect_branch_revs(rev1, rev2)
 
         # Get src and dst branches
@@ -1134,6 +1280,7 @@ class PostCommitHook(CommitHook):
         Update all closed tickets milestone
         '''
         # Get all revisions to deliver
+        self.env.log.debug("> post_cmd_delivers [%s:%s]", rev1, rev2)
         revisions = self._collect_branch_revs(rev1, rev2)
 
         next_ms = self._next_milestone()

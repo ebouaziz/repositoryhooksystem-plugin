@@ -13,6 +13,7 @@ from testcase_abstract import (TestCaseAbstract, TestFunctionalTestSuite,
     TestCaseError)
 from trac.tests.functional import *
 import inspect
+import sys
 
 
 class SB_01(TestCaseAbstract):
@@ -47,7 +48,9 @@ class SB_01(TestCaseAbstract):
         # Creates tickets for sandboxes and trunk
         ticket_id = self._tester.create_ticket(summary='ticket',
                                                info={'keywords': ""})
+        print >>sys.stderr, "SB_01.runTest.1"
         self.sandbox_create(ticket_id, close=True)
+        print >>sys.stderr, "SB_01.runTest.2"
 
 
 class SB_02(TestCaseAbstract):
@@ -84,6 +87,7 @@ class SB_02(TestCaseAbstract):
 
     def runTest(self):
         # Creates tickets for sandboxes and trunk
+        print >>sys.stderr, "SB_02.runTest.1"
         ticket_id = self._tester.create_ticket(summary='ticket',
                                                info={'keywords': ""})
         sandbox_path = 'sandboxes/t%s' % ticket_id
@@ -141,6 +145,7 @@ class SB_03(TestCaseAbstract):
 
     def runTest(self):
         # Creates tickets for sandboxes and trunk
+        print >>sys.stderr, "SB_03.runTest.1"
         ticket_id = self._tester.create_ticket(summary='ticket',
                                                info={'keywords': ""})
         sandbox_path = 'sandboxes/t%s' % ticket_id
@@ -192,24 +197,31 @@ class SB_04(TestCaseAbstract):
 
     def runTest(self):
         # Create test branch
+        print >>sys.stderr, "SB_04.runTest.1"
         ci_msg = 'Creates test branch'
         rev = self.branch_create('branches/test', ci_msg, 'trunk')
+        print >>sys.stderr, "SB_04.runTest.2"
 
         with self.assertRaises(TestCaseError) as cm:
             # Try to create a branch that already exist
+            print >>sys.stderr, "SB_04.runTest.3"
             self.branch_create('branches/test', ci_msg, 'trunk')
+            print >>sys.stderr, "SB_04.runTest.4"
 
         msg = cm.exception.message
         expected_msg = 'Commit blocked by pre-commit hook'
+        print >>sys.stderr, "SB_04.runTest.5"
         self.assertFalse(msg.find(expected_msg) == -1,
                          msg="Missing error message='%s', get " \
                          "message='%s'" % (expected_msg, msg))
+        print >>sys.stderr, "SB_04.runTest.6"
 
         expected_msg = 'Destination branch ' \
                        '/branches/test already exists at [%s]' % rev
         self.assertFalse(msg.find(expected_msg) == -1,
                          msg="Missing error message='%s', get " \
                          "message='%s'" % (expected_msg, msg))
+        print >>sys.stderr, "SB_04.runTest.7"
 
 
 class SB_05(TestCaseAbstract):
@@ -247,6 +259,7 @@ class SB_05(TestCaseAbstract):
 
     def runTest(self):
         # Creates tickets for sandbox
+        print >>sys.stderr, "SB_05.runTest.1"
         summary = 'ticket for delivers'
         ticket_id = self._tester.create_ticket(summary=summary,
                                                info={'keywords': ""})
