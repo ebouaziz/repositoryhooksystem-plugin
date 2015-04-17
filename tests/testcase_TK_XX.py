@@ -100,12 +100,12 @@ class TK_02(TestCaseAbstract):
         msg = cm.exception.message
         expected_msg = 'Commit blocked by pre-commit hook'
         self.assertFalse(msg.find(expected_msg) == -1,
-                         msg="Missing error message='%s', get " \
+                         msg="Missing error message='%s', got "
                          "message='%s'" % (expected_msg, msg))
 
         expected_msg = 'Not all tickets closed, delivery rejected'
         self.assertFalse(msg.find(expected_msg) == -1,
-                         msg="Missing error message='%s', get " \
+                         msg="Missing error message='%s', got "
                          "message='%s'" % (expected_msg, msg))
 
 
@@ -153,12 +153,12 @@ class TK_03(TestCaseAbstract):
             msg = cm.exception.message
             expected_msg = 'Commit blocked by pre-commit hook'
             self.assertFalse(msg.find(expected_msg) == -1,
-                             msg="Missing error message='%s', get " \
+                             msg="Missing error message='%s', got "
                              "message='%s'" % (expected_msg, msg))
 
             expected_msg = 'No known action in log message !'
             self.assertFalse(msg.find(expected_msg) == -1,
-                             msg="Missing error message='%s', get " \
+                             msg="Missing error message='%s', got "
                              "message='%s'" % (expected_msg, msg))
 
         os.system("rm -r %s" % os.path.join(self._testenv.work_dir()))
@@ -211,12 +211,12 @@ class TK_04(TestCaseAbstract):
         msg = cm.exception.message
         expected_msg = 'Commit blocked by pre-commit hook'
         self.assertFalse(msg.find(expected_msg) == -1,
-                         msg="Missing error message='%s', get "
+                         msg="Missing error message='%s', got "
                          "message='%s'" % (expected_msg, msg))
 
         expected_msg = 'Multiple branches in commit not allowed'
         self.assertFalse(msg.find(expected_msg) == -1,
-                         msg="Missing error message='%s', get "
+                         msg="Missing error message='%s', got "
                          "message='%s'" % (expected_msg, msg))
 
 
@@ -252,12 +252,12 @@ class TK_05(TestCaseAbstract):
         msg = cm.exception.message
         expected_msg = 'Commit blocked by pre-commit hook'
         self.assertFalse(msg.find(expected_msg) == -1,
-                         msg="Missing error message='%s', get "
+                         msg="Missing error message='%s', got "
                          "message='%s'" % (expected_msg, msg))
 
         expected_msg = 'Please correct component of #'
         self.assertFalse(msg.find(expected_msg) == -1,
-                         msg="Missing error message='%s', get "
+                         msg="Missing error message='%s', got "
                          "message='%s'" % (expected_msg, msg))
 
 
@@ -293,12 +293,12 @@ class TK_06(TestCaseAbstract):
         msg = cm.exception.message
         expected_msg = 'Commit blocked by pre-commit hook'
         self.assertFalse(msg.find(expected_msg) == -1,
-                         msg="Missing error message='%s', get "
+                         msg="Missing error message='%s', got "
                          "message='%s'" % (expected_msg, msg))
 
         expected_msg = 'Please correct component of #'
         self.assertFalse(msg.find(expected_msg) == -1,
-                         msg="Missing error message='%s', get "
+                         msg="Missing error message='%s', got "
                          "message='%s'" % (expected_msg, msg))
 
 
@@ -400,6 +400,55 @@ class TK_08(TestCaseAbstract):
         self.svn_commit('trunk',
                         'Externals [trac:source:branches@%s]' % branch_rev)
 
+class TK_09(TestCaseAbstract):
+
+    """
+    Test name: TK_09, sandbox from trunk, no open milestone, no close allowed
+
+    Objective:
+        * check that ticket cannot be closed if no suitable
+          milestone is available
+
+    Pass Criteria:
+        * close operation should fail
+    """
+
+    def runTest(self):
+        # Update trunk
+        self.svn_update('')
+
+        # this does not work anymore as the roadmap page loads content
+        # dynamically
+        # self._tester.create_milestone('Next', '09/04/18')
+
+        # remove predefined milestones
+        self._testenv._tracadmin('milestone', 'remove', 'milestone1')
+        self._testenv._tracadmin('milestone', 'remove', 'milestone2')
+        self._testenv._tracadmin('milestone', 'remove', 'milestone3')
+        self._testenv._tracadmin('milestone', 'remove', 'milestone4')
+
+        # create 'Next' milestone using admin interface
+        self._testenv._tracadmin('milestone', 'add', 'Next', '09/04/18')
+        print "milestone created"
+
+        # create ticket
+        summary = 'ticket for tk_09'
+        info = {'milestone': 'Next'}
+        ticket_id = self._tester.create_ticket(summary=summary, info=info)
+        print "ticket created"
+
+        # create sandbox (open + commit + close)
+        with self.assertRaises(TestCaseError) as cm:
+            self.sandbox_create(ticket_id, close=True)
+            print "sandbox created and closed" # should not be displayed
+
+        msg = cm.exception.message
+        expected_msg = 'No defined next milestone'
+        self.assertFalse(msg.find(expected_msg) == -1,
+                         msg="Missing error message='%s', got "
+                         "message='%s'" % (expected_msg, msg))
+
+
 
 def functionalSuite(suite=None):
     if not has_svn:
@@ -426,14 +475,15 @@ def functionalSuite(suite=None):
 
     if not suite:
         suite = TestFunctionalTestSuite()
-        suite.addTest(TK_01())
-        suite.addTest(TK_02())
-        suite.addTest(TK_03())
-        suite.addTest(TK_04())
-        suite.addTest(TK_05())
-        suite.addTest(TK_06())
-        suite.addTest(TK_07())
-        suite.addTest(TK_08())
+        #suite.addTest(TK_01())
+        #suite.addTest(TK_02())
+        #suite.addTest(TK_03())
+        #suite.addTest(TK_04())
+        #suite.addTest(TK_05())
+        #suite.addTest(TK_06())
+        #suite.addTest(TK_07())
+        #suite.addTest(TK_08())
+        suite.addTest(TK_09())
     return suite
 
 

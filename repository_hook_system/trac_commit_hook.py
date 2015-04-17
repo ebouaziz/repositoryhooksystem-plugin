@@ -166,17 +166,13 @@ class CommitHook(object):
         # Branch creation
         creation_cmd = create_pattern.search(self.log)
         if creation_cmd:
-            print >>sys.stderr, "Create 1", self.log
             cmd_dict = creation_cmd.groupdict()
-            print >>sys.stderr, "Create 2", cmd_dict
             rc = self._cmd_creates(cmd_dict.setdefault('ticket', None))
-            print >>sys.stderr, "Create 3"
             self.finalize(rc)
 
         # Changeset-related commands
         chgset_cmd = changeset_cmd_pattern.search(self.log)
         if chgset_cmd:
-            print >>sys.stderr, "CS 1", self.log
             cmd = chgset_cmd.group('action').lower()
             if cmd in CommitHook._changeset_cmds:
                 func = getattr(self, CommitHook._changeset_cmds[cmd])
@@ -190,20 +186,13 @@ class CommitHook(object):
 
         # Ticket-related commands
         ticket_cmd = ticket_cmd_pattern.search(self.log)
-        print >>sys.stderr, "Ticket 1", self.log
         if ticket_cmd:
-            print >>sys.stderr, "2"
             cmd = ticket_cmd.group('action').lower()
-            print >>sys.stderr, "3"
             if cmd in CommitHook._ticket_cmds:
-                print >>sys.stderr, "4"
                 func = getattr(self, CommitHook._ticket_cmds[cmd])
-                print >>sys.stderr, "5", func
                 rc = func(int(ticket_cmd.group('ticket')),
                           ticket_cmd.group('force') and True)
-                print >>sys.stderr, "6"
                 self.finalize(rc)
-                print >>sys.stderr, "7"
             else:
                 print>>sys.stderr, 'No supported action in log message !'
                 self.finalize(ERROR)
@@ -411,9 +400,13 @@ class CommitHook(object):
         """
         # current branch
         if self.txn:
+            self.env.log.debug("> _get_milestone_and_project transaction")
             branch = self.proxy.find_txn_branch(self.bcre)
         elif self.rev:
+            self.env.log.debug("> _get_milestone_and_project project")
             branch = self.proxy.find_revision_branch(self.rev, self.bcre)
+        else:
+            self.env.log.debug("> _get_milestone_and_project WTF???")
 
         # fetch revision history of the branch
         history = [h for h in self.proxy.get_history(self.youngest, branch, None)]
@@ -646,7 +639,7 @@ class PreCommitHook(CommitHook):
         except StopIteration:
             pass
         else:
-            sys.stderr.write('Termination of more than one branch is not ' \
+            sys.stderr.write('Termination of more than one branch is not '
                               'allowed\n')
             self.finalize(ERROR)
         (path, change) = item
@@ -696,29 +689,30 @@ class PreCommitHook(CommitHook):
         # check component
         self.env.log.debug("> pre_cmd_closes")
         if not self._is_admin(self.author) or not force:
-            print >>sys.stderr, "52"
+            self.env.log.debug("  52")
             if self._is_ticket_invalid_component(ticket_id):
                 print >> sys.stderr, 'Please correct component of #%d' \
                                      % ticket_id
                 self.finalize(ERROR)
-            print >>sys.stderr, "53"
+            self.env.log.debug("  53")
 
         # check ticket closed and operation occurs in a branch
         self._pre_cmd_closes(ticket_id)
-        print >>sys.stderr, "54"
+        self.env.log.debug("  54")
 
         # find original branch and target milestone
         milestone, project = self._get_milestone_and_project()
-        print >>sys.stderr, "55"
+        self.env.log.debug("  55 %s", milestone)
         if milestone is None and self._is_ticket_invalid_milestone(ticket_id):
-            print >>sys.stderr, "56"
+            self.env.log.debug("  56")
             if not self._is_admin(self.author) or not force:
-                print >>sys.stderr, "57"
+                self.env.log.debug("  57")
                 if project:
                     msg = "No defined next milestone for project '%s'" % project
                 else:
                     msg = 'No defined next milestone'
                 print >> sys.stderr, msg
+                self.env.log.debug("  %s", msg)
                 self.finalize(ERROR)
         self.env.log.debug("< pre_cmd_closes")
         return OK

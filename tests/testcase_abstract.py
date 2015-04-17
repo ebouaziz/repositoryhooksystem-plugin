@@ -42,14 +42,9 @@ class TestSuiteEnvironment(SvnFunctionalTestEnvironment):
             self.logfile = logfile
 
         # Add component
-        self._tracadmin('component', 'add', 'Triage',
-                        self.repo_path_for_initenv())
-
-        self._tracadmin('component', 'add', 'None',
-                        self.repo_path_for_initenv())
-
-        self._tracadmin('component', 'add', 'Component',
-                        self.repo_path_for_initenv())
+        self._tracadmin('component', 'add', 'Triage')
+        self._tracadmin('component', 'add', 'None')
+        self._tracadmin('component', 'add', 'Component')
 
     def _init_repository(self):
         """
@@ -213,7 +208,7 @@ class TestSuiteEnvironment(SvnFunctionalTestEnvironment):
 
         environ = environ or os.environ.copy()
         environ['LC_ALL'] = 'C'  # Force English messages
-        print '### run', args
+        # print '>>> run', args
         proc = Popen(args, stdout=PIPE, stderr=PIPE,
                      close_fds=close_fds, cwd=cwd, env=environ)
         (data, error) = proc.communicate()
@@ -510,7 +505,6 @@ class TestCaseAbstract(FunctionalTwillTestCaseSetup):
         # Verify title
         if title_path:
             title = self.svn_log_rev(title_path, revision)
-            xpath = './/a[@class="changeset"]'  # /changeset/5
             xpath = './/a[@href="/changeset/%s"]' % revision
             result = item.findall(xpath)
             if len(result) != 1:
