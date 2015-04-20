@@ -449,7 +449,8 @@ class TestCaseAbstract(FunctionalTwillTestCaseSetup):
         if output.strip().find(msg) == -1:
             raise TestCaseError("Invalid revision log message='%s'" % output)
 
-    def verify_ticket_entry(self, ticket_id, revision, msg, title_path):
+    def verify_ticket_entry(self, ticket_id, revision, msg, title_path,
+                            milestone=None):
         """
         This method is used to verify if an entry is properly created, in
         a Trac ticket.
@@ -496,8 +497,8 @@ class TestCaseAbstract(FunctionalTwillTestCaseSetup):
         item = result[0]
         ticket_msg = ("".join(item.itertext())).replace('\n', '')
         ticket_msg = ticket_msg.encode('ascii', errors='ignore')
-        print >>sys.stderr, "actual ticket message:", ticket_msg
-        print >>sys.stderr, "expected ticket message:", msg
+        #print >>sys.stderr, "actual ticket message:", ticket_msg
+        #print >>sys.stderr, "expected ticket message:", msg
         if msg != ticket_msg.strip():
             raise TestCaseError("Invalid commit message=' %s' for "
                                 "ticket='%s'" % (ticket_msg, ticket_id))
@@ -514,6 +515,19 @@ class TestCaseAbstract(FunctionalTwillTestCaseSetup):
             if item.get('title') != title.replace('\n', ' '):
                 raise TestCaseError("Invalid title message for commit=' %s', "
                                     "ticket='%s'" % (ticket_msg, ticket_id))
+
+        if milestone is not None:
+            xpath = './/td[@headers="h_milestone"]/a[@class="milestone"]'
+            result = xml_tree.findall(xpath)
+            if len(result):
+                tkt_ms = result[0].text
+                if tkt_ms != milestone:
+                    raise TestCaseError("Invalid milestone '%s' for ticket "
+                                        "#%s, expected '%s'" % (tkt_ms,
+                                        ticket_id, milestone))
+            else:
+                raise TestCaseError("Invalid result while searching milestone "
+                                    "in ticket: %s" % result)
 
     def branch_create(self, branch, commit_msg, branch_from='trunk'):
         # Creates branch

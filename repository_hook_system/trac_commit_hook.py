@@ -1115,7 +1115,8 @@ class PostCommitHook(CommitHook):
             self.env.log.debug("  ms '%s', pj '%s'", milestone, project)
             ticket = Ticket(self.env, ticket_id)
             self.env.log.debug("got ticket")
-            if milestone is not None:
+            if milestone is not None and \
+                    self._is_ticket_invalid_milestone(ticket_id):
                 ticket['milestone'] = milestone
             ticket['status'] = 'closed'
             ticket['resolution'] = 'fixed'
