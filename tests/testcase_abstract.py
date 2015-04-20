@@ -513,19 +513,42 @@ class TestCaseAbstract(FunctionalTwillTestCaseSetup):
             if item.get('title') != title.replace('\n', ' '):
                 raise TestCaseError("Invalid title message for commit=' %s', "
                                     "ticket='%s'" % (ticket_msg, ticket_id))
-
         if milestone is not None:
-            xpath = './/td[@headers="h_milestone"]/a[@class="milestone"]'
-            result = xml_tree.findall(xpath)
-            if len(result):
-                tkt_ms = result[0].text
-                if tkt_ms != milestone:
-                    raise TestCaseError("Invalid milestone '%s' for ticket "
-                                        "#%s, expected '%s'" % (tkt_ms,
-                                        ticket_id, milestone))
-            else:
-                raise TestCaseError("Invalid result while searching milestone "
-                                    "in ticket: %s" % result)
+            self.verify_ticket_milestone(ticket_id, milestone, xml_tree)
+
+    def verify_ticket_milestone(self, ticket_id, milestone, xml_tree=None):
+        if xml_tree is None:
+            # Go to the ticket page
+            self._tester.go_to_ticket(ticket_id)
+
+            # Verify ticket message
+            xhtml = tc.get_browser().get_html()
+            xhtml = re.sub(' xmlns="[^"]+"', '', xhtml, count=1)
+
+            # Hack to support unknown entities
+            # cf. http://en.wikipedia.org/wiki/
+            # List_of_XML_and_HTML_character_entity_references web page
+            class AllEntities:
+
+                def __getitem__(self, key):
+                    # key associated to entity
+                    return key
+            parser = ElementTree.XMLParser()
+            parser.parser.UseForeignDTD(True)
+            parser.entity = AllEntities()
+            xml_tree = et.XML(xhtml, parser=parser)
+
+        xpath = './/td[@headers="h_milestone"]/a[@class="milestone"]'
+        result = xml_tree.findall(xpath)
+        if len(result):
+            tkt_ms = result[0].text
+            if tkt_ms != milestone:
+                raise TestCaseError("Invalid milestone '%s' for ticket "
+                                    "#%s, expected '%s'" % (tkt_ms,
+                                    ticket_id, milestone))
+        else:
+            raise TestCaseError("Invalid result while searching milestone "
+                                "in ticket: %s" % result)
 
     def branch_create(self, branch, commit_msg, branch_from='trunk'):
         # Creates branch
@@ -543,7 +566,6 @@ class TestCaseAbstract(FunctionalTwillTestCaseSetup):
         # Creates sandbox from trunk/component
         commit_msg = 'Creates t%s for #%s' % (ticket_id, ticket_id)
         revision = self.svn_cp(branch_from, sandbox_path, commit_msg)
-        print >>sys.stderr, "revision", revision
         first_rev = revision
 
         # Verify revision log

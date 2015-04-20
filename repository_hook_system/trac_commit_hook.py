@@ -689,24 +689,18 @@ class PreCommitHook(CommitHook):
         # check component
         self.env.log.debug("> pre_cmd_closes")
         if not self._is_admin(self.author) or not force:
-            self.env.log.debug("  52")
             if self._is_ticket_invalid_component(ticket_id):
                 print >> sys.stderr, 'Please correct component of #%d' \
                                      % ticket_id
                 self.finalize(ERROR)
-            self.env.log.debug("  53")
 
         # check ticket closed and operation occurs in a branch
         self._pre_cmd_closes(ticket_id)
-        self.env.log.debug("  54")
 
         # find original branch and target milestone
         milestone, project = self._get_milestone_and_project()
-        self.env.log.debug("  55 %s", milestone)
         if milestone is None and self._is_ticket_invalid_milestone(ticket_id):
-            self.env.log.debug("  56")
             if not self._is_admin(self.author) or not force:
-                self.env.log.debug("  57")
                 if project:
                     msg = "No defined next milestone for project '%s'" % project
                 else:

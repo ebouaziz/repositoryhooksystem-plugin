@@ -429,24 +429,24 @@ class TK_09(TestCaseAbstract):
 
         # create 'Next' milestone using admin interface
         self._testenv._tracadmin('milestone', 'add', 'Next', '09/04/18')
-        print "milestone created"
 
-        # create ticket
-        summary = 'ticket for tk_09'
-        info = {'milestone': 'Next'}
-        ticket_id = self._tester.create_ticket(summary=summary, info=info)
-        print "ticket created"
+        try:
+            # create ticket
+            summary = 'ticket for tk_09'
+            info = {'milestone': 'Next'}
+            ticket_id = self._tester.create_ticket(summary=summary, info=info)
 
-        # create sandbox (open + commit + close)
-        with self.assertRaises(TestCaseError) as cm:
-            self.sandbox_create(ticket_id, close=True)
-            print "sandbox created and closed" # should not be displayed
+            # create sandbox (open + commit + close)
+            with self.assertRaises(TestCaseError) as cm:
+                self.sandbox_create(ticket_id, close=True)
 
-        msg = cm.exception.message
-        expected_msg = 'No defined next milestone'
-        self.assertFalse(msg.find(expected_msg) == -1,
-                         msg="Missing error message='%s', got "
-                         "message='%s'" % (expected_msg, msg))
+            msg = cm.exception.message
+            expected_msg = 'No defined next milestone'
+            self.assertFalse(msg.find(expected_msg) == -1,
+                             msg="Missing error message='%s', got "
+                             "message='%s'" % (expected_msg, msg))
+        finally:
+            self._testenv._tracadmin('milestone', 'remove', 'Next')
 
 
 class TK_10(TestCaseAbstract):
@@ -481,28 +481,28 @@ class TK_10(TestCaseAbstract):
         # create an completed milestone
         self._testenv._tracadmin('milestone', 'add', 'thisone', '09/04/17')
         self._testenv._tracadmin('milestone', 'complete', 'thisone', '01/01/17')
-        print "milestones created"
 
-        # create ticket
-        summary = 'ticket for tk_10'
-        info = {'milestone': 'Next'}
-        ticket_id = self._tester.create_ticket(summary=summary, info=info)
-        print "ticket created"
-        self.sandbox_create(ticket_id, close=False)
-        print "sandbox created"
-        self._tester.ticket_set_milestone(ticket_id, 'thisone')
-        print "milestone set"
-        # close ticket
-        sandbox_path = 'sandboxes/t%s' % ticket_id
-        self.svn_add(sandbox_path, 'driver-i2c_213.py', '# Header')
-        commit_msg = 'Closes #%s, Add driver-i2c_123.py module' % ticket_id
-        revision = self.svn_commit(sandbox_path, commit_msg)
-        # check rev msg and ticket
-        self.verify_log_rev(sandbox_path, commit_msg, revision)
-        commit_msg = "(In [%s]) %s" % (revision, commit_msg)
-        self.verify_ticket_entry(ticket_id, revision, commit_msg,
-                                 sandbox_path, "thisone")
-
+        try:
+            # create ticket
+            summary = 'ticket for tk_10'
+            info = {'milestone': 'Next'}
+            ticket_id = self._tester.create_ticket(summary=summary, info=info)
+            self.sandbox_create(ticket_id, close=False)
+            self._tester.ticket_set_milestone(ticket_id, 'thisone')
+            # close ticket
+            sandbox_path = 'sandboxes/t%s' % ticket_id
+            self.svn_add(sandbox_path, 'driver-i2c_213.py', '# Header')
+            commit_msg = 'Closes #%s, Add driver-i2c_123.py module' % ticket_id
+            revision = self.svn_commit(sandbox_path, commit_msg)
+            # check rev msg and ticket
+            self.verify_log_rev(sandbox_path, commit_msg, revision)
+            commit_msg = "(In [%s]) %s" % (revision, commit_msg)
+            self.verify_ticket_entry(ticket_id, revision, commit_msg,
+                                     sandbox_path, "thisone")
+        finally:
+            self._testenv._tracadmin('milestone', 'remove', 'Next')
+            self._testenv._tracadmin('milestone', 'remove', 'notthisone')
+            self._testenv._tracadmin('milestone', 'remove', 'thisone')
 
 class TK_11(TestCaseAbstract):
 
@@ -535,25 +535,26 @@ class TK_11(TestCaseAbstract):
         self._testenv._tracadmin('milestone', 'add', 'thisone', '09/04/17')
         self._testenv._tracadmin('milestone', 'add', 'notthisone', '01/01/18')
 
-        print "milestones created"
-
-        # create ticket
-        summary = 'ticket for tk_11'
-        info = {'milestone': 'Next'}
-        ticket_id = self._tester.create_ticket(summary=summary, info=info)
-        print "ticket created"
-        self.sandbox_create(ticket_id, close=False)
-        print "sandbox created"
-        # close ticket
-        sandbox_path = 'sandboxes/t%s' % ticket_id
-        self.svn_add(sandbox_path, 'driver-i2c_213.py', '# Header')
-        commit_msg = 'Closes #%s, Add driver-i2c_123.py module' % ticket_id
-        revision = self.svn_commit(sandbox_path, commit_msg)
-        # check rev msg and ticket
-        self.verify_log_rev(sandbox_path, commit_msg, revision)
-        commit_msg = "(In [%s]) %s" % (revision, commit_msg)
-        self.verify_ticket_entry(ticket_id, revision, commit_msg,
-                                 sandbox_path, "thisone")
+        try:
+            # create ticket
+            summary = 'ticket for tk_11'
+            info = {'milestone': 'Next'}
+            ticket_id = self._tester.create_ticket(summary=summary, info=info)
+            self.sandbox_create(ticket_id, close=False)
+            # close ticket
+            sandbox_path = 'sandboxes/t%s' % ticket_id
+            self.svn_add(sandbox_path, 'driver-i2c_213.py', '# Header')
+            commit_msg = 'Closes #%s, Add driver-i2c_123.py module' % ticket_id
+            revision = self.svn_commit(sandbox_path, commit_msg)
+            # check rev msg and ticket
+            self.verify_log_rev(sandbox_path, commit_msg, revision)
+            commit_msg = "(In [%s]) %s" % (revision, commit_msg)
+            self.verify_ticket_entry(ticket_id, revision, commit_msg,
+                                     sandbox_path, "thisone")
+        finally:
+            self._testenv._tracadmin('milestone', 'remove', 'Next')
+            self._testenv._tracadmin('milestone', 'remove', 'notthisone')
+            self._testenv._tracadmin('milestone', 'remove', 'thisone')
 
 
 class TK_12(TestCaseAbstract):
@@ -578,34 +579,84 @@ class TK_12(TestCaseAbstract):
         self._testenv._tracadmin('milestone', 'remove', 'milestone2')
         self._testenv._tracadmin('milestone', 'remove', 'milestone3')
         self._testenv._tracadmin('milestone', 'remove', 'milestone4')
-
-        branchname = 'superproject'
-
         # create 'Next' milestone using admin interface
         self._testenv._tracadmin('milestone', 'add', 'Next', '09/04/18')
         # create two opened milestones
         self._testenv._tracadmin('milestone', 'add',
                                  'lameproject-notthisone', '01/01/18')
 
-        print "milestones created"
+        try:
+            branchname = 'superproject'
+            # create ticket
+            summary = 'ticket for tk_12'
+            info = {'milestone': 'Next'}
+            ticket_id = self._tester.create_ticket(summary=summary, info=info)
+            # create project branch
+            branch = 'branches/'+branchname+'-1.x'
+            self.branch_create(branch, "Creates new branch for TK_12")
+            # create sandbox from
+            with self.assertRaises(TestCaseError) as cm:
+                self.sandbox_create(ticket_id, branch_from=branch, close=True)
+            # check error message
+            msg = cm.exception.message
+            expected_msg = 'No defined next milestone for project'
+            self.assertFalse(msg.find(expected_msg) == -1,
+                             msg="Missing error message='%s', got "
+                             "message='%s'" % (expected_msg, msg))
+        finally:
+            self._testenv._tracadmin('milestone', 'remove', 'Next')
+            self._testenv._tracadmin('milestone', 'remove',
+                                     'lameproject-notthisone')
 
-        # create ticket
-        summary = 'ticket for tk_12'
-        info = {'milestone': 'Next'}
-        ticket_id = self._tester.create_ticket(summary=summary, info=info)
-        print "ticket created"
-        # create project branch
-        branch = 'branches/'+branchname+'-1.x'
-        self.branch_create(branch, "Creates new branch for TK_12")
-        # create sandbox from
-        with self.assertRaises(TestCaseError) as cm:
+class TK_13(TestCaseAbstract):
+
+    """
+    Test name: TK_13, sandbox from branch, two open milestones, one matching
+               the branch name, close ticket, close allowed
+
+    Objective:
+        * check that ticket can be closed if a valid milestone exists
+        * check that the milestone is automatically set correctly
+
+    Pass Criteria:
+        * close operation should succeed
+        * milestone should be set automatically the matching milestone
+    """
+
+    def runTest(self):
+        # Update trunk
+        self.svn_update('')
+
+        # remove predefined milestones
+        self._testenv._tracadmin('milestone', 'remove', 'milestone1')
+        self._testenv._tracadmin('milestone', 'remove', 'milestone2')
+        self._testenv._tracadmin('milestone', 'remove', 'milestone3')
+        self._testenv._tracadmin('milestone', 'remove', 'milestone4')
+
+        # create 'Next' milestone using admin interface
+        self._testenv._tracadmin('milestone', 'add', 'Next', '09/04/18')
+        # create two opened milestones
+        self._testenv._tracadmin('milestone', 'add', 'notthisone', '01/01/17')
+        branchname = 'superproject'
+        self._testenv._tracadmin('milestone', 'add',
+                                 branchname+'-thisone', '01/01/18')
+
+        try:
+            # create ticket
+            summary = 'ticket for tk_13'
+            info = {'milestone': 'Next'}
+            ticket_id = self._tester.create_ticket(summary=summary, info=info)
+            # create project branch
+            branch = 'branches/'+branchname+'-2.x'
+            self.branch_create(branch, "Creates new branch for TK_13")
+            # sandbox
             self.sandbox_create(ticket_id, branch_from=branch, close=True)
-        # check error message
-        msg = cm.exception.message
-        expected_msg = 'No defined next milestone for project'
-        self.assertFalse(msg.find(expected_msg) == -1,
-                         msg="Missing error message='%s', got "
-                         "message='%s'" % (expected_msg, msg))
+            self.verify_ticket_milestone(ticket_id, branchname+'-thisone')
+        finally:
+            self._testenv._tracadmin('milestone', 'remove', 'Next')
+            self._testenv._tracadmin('milestone', 'remove', 'notthisone')
+            self._testenv._tracadmin('milestone', 'remove',
+                                     branchname+'-thisone')
 
 
 def functionalSuite(suite=None):
@@ -633,18 +684,19 @@ def functionalSuite(suite=None):
 
     if not suite:
         suite = TestFunctionalTestSuite()
-        #suite.addTest(TK_01())
-        #suite.addTest(TK_02())
-        #suite.addTest(TK_03())
-        #suite.addTest(TK_04())
-        #suite.addTest(TK_05())
-        #suite.addTest(TK_06())
-        #suite.addTest(TK_07())
-        #suite.addTest(TK_08())
-        #suite.addTest(TK_09())
-        #suite.addTest(TK_10())
-        #suite.addTest(TK_11())
+        suite.addTest(TK_01())
+        suite.addTest(TK_02())
+        suite.addTest(TK_03())
+        suite.addTest(TK_04())
+        suite.addTest(TK_05())
+        suite.addTest(TK_06())
+        suite.addTest(TK_07())
+        suite.addTest(TK_08())
+        suite.addTest(TK_09())
+        suite.addTest(TK_10())
+        suite.addTest(TK_11())
         suite.addTest(TK_12())
+        suite.addTest(TK_13())
     return suite
 
 
