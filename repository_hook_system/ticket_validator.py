@@ -41,9 +41,8 @@ class TicketChangeValidator(Component):
         pass
 
     def validate_ticket(self, req, ticket):
-        #if ticket['status'] == 'closed' and \
-        #        not req.perm.has_permission('TICKET_ADMIN'):
-        if ticket['status'] == 'closed':
+        if ticket['status'] == 'closed' and \
+                not req.perm.has_permission('TICKET_ADMIN'):
             if ticket['component'] in self._fbden_cp_on_close:
                 yield 'component', tag_('Fix ticket component before closing')
             if ticket['milestone'] in self._fbden_ms_on_close:
