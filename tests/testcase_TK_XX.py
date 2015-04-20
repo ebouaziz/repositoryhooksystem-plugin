@@ -468,10 +468,6 @@ class TK_10(TestCaseAbstract):
         # Update trunk
         self.svn_update('')
 
-        # this does not work anymore as the roadmap page loads content
-        # dynamically
-        # self._tester.create_milestone('Next', '09/04/18')
-
         # remove predefined milestones
         self._testenv._tracadmin('milestone', 'remove', 'milestone1')
         self._testenv._tracadmin('milestone', 'remove', 'milestone2')
@@ -527,10 +523,6 @@ class TK_11(TestCaseAbstract):
         # Update trunk
         self.svn_update('')
 
-        # this does not work anymore as the roadmap page loads content
-        # dynamically
-        # self._tester.create_milestone('Next', '09/04/18')
-
         # remove predefined milestones
         self._testenv._tracadmin('milestone', 'remove', 'milestone1')
         self._testenv._tracadmin('milestone', 'remove', 'milestone2')
@@ -546,7 +538,7 @@ class TK_11(TestCaseAbstract):
         print "milestones created"
 
         # create ticket
-        summary = 'ticket for tk_10'
+        summary = 'ticket for tk_11'
         info = {'milestone': 'Next'}
         ticket_id = self._tester.create_ticket(summary=summary, info=info)
         print "ticket created"
@@ -562,6 +554,58 @@ class TK_11(TestCaseAbstract):
         commit_msg = "(In [%s]) %s" % (revision, commit_msg)
         self.verify_ticket_entry(ticket_id, revision, commit_msg,
                                  sandbox_path, "thisone")
+
+
+class TK_12(TestCaseAbstract):
+
+    """
+    Test name: TK_12, sandbox from a branch, one open milestone not matching
+               the branch name, close forbidden
+
+    Objective:
+        * check that ticket cannot be closed
+
+    Pass Criteria:
+        * close operation should fails
+    """
+
+    def runTest(self):
+        # Update trunk
+        self.svn_update('')
+
+        # remove predefined milestones
+        self._testenv._tracadmin('milestone', 'remove', 'milestone1')
+        self._testenv._tracadmin('milestone', 'remove', 'milestone2')
+        self._testenv._tracadmin('milestone', 'remove', 'milestone3')
+        self._testenv._tracadmin('milestone', 'remove', 'milestone4')
+
+        branchname = 'superproject'
+
+        # create 'Next' milestone using admin interface
+        self._testenv._tracadmin('milestone', 'add', 'Next', '09/04/18')
+        # create two opened milestones
+        self._testenv._tracadmin('milestone', 'add',
+                                 'lameproject-notthisone', '01/01/18')
+
+        print "milestones created"
+
+        # create ticket
+        summary = 'ticket for tk_12'
+        info = {'milestone': 'Next'}
+        ticket_id = self._tester.create_ticket(summary=summary, info=info)
+        print "ticket created"
+        # create project branch
+        branch = 'branches/'+branchname+'-1.x'
+        self.branch_create(branch, "Creates new branch for TK_12")
+        # create sandbox from
+        with self.assertRaises(TestCaseError) as cm:
+            self.sandbox_create(ticket_id, branch_from=branch, close=True)
+        # check error message
+        msg = cm.exception.message
+        expected_msg = 'No defined next milestone for project'
+        self.assertFalse(msg.find(expected_msg) == -1,
+                         msg="Missing error message='%s', got "
+                         "message='%s'" % (expected_msg, msg))
 
 
 def functionalSuite(suite=None):
@@ -599,7 +643,8 @@ def functionalSuite(suite=None):
         #suite.addTest(TK_08())
         #suite.addTest(TK_09())
         #suite.addTest(TK_10())
-        suite.addTest(TK_11())
+        #suite.addTest(TK_11())
+        suite.addTest(TK_12())
     return suite
 
 

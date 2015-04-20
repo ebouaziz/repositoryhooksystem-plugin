@@ -497,8 +497,6 @@ class TestCaseAbstract(FunctionalTwillTestCaseSetup):
         item = result[0]
         ticket_msg = ("".join(item.itertext())).replace('\n', '')
         ticket_msg = ticket_msg.encode('ascii', errors='ignore')
-        #print >>sys.stderr, "actual ticket message:", ticket_msg
-        #print >>sys.stderr, "expected ticket message:", msg
         if msg != ticket_msg.strip():
             raise TestCaseError("Invalid commit message=' %s' for "
                                 "ticket='%s'" % (ticket_msg, ticket_id))
