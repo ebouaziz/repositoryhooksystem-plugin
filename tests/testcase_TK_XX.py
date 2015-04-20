@@ -452,14 +452,16 @@ class TK_09(TestCaseAbstract):
 class TK_10(TestCaseAbstract):
 
     """
-    Test name: TK_10, sandbox from trunk, no open milestone,
-               milestone set manually, close allowed
+    Test name: TK_10, sandbox from trunk, one open milestone,
+               other milestone set manually, close allowed
 
     Objective:
         * check that ticket can be closed if a valid milestone is set manually
+          and that the milestone is not altered
 
     Pass Criteria:
         * close operation should succeed
+        * milestone should be left as "thisone"
     """
 
     def runTest(self):
@@ -490,11 +492,66 @@ class TK_10(TestCaseAbstract):
         info = {'milestone': 'Next'}
         ticket_id = self._tester.create_ticket(summary=summary, info=info)
         print "ticket created"
-
         self.sandbox_create(ticket_id, close=False)
         print "sandbox created"
         self._tester.ticket_set_milestone(ticket_id, 'thisone')
         print "milestone set"
+        # close ticket
+        sandbox_path = 'sandboxes/t%s' % ticket_id
+        self.svn_add(sandbox_path, 'driver-i2c_213.py', '# Header')
+        commit_msg = 'Closes #%s, Add driver-i2c_123.py module' % ticket_id
+        revision = self.svn_commit(sandbox_path, commit_msg)
+        # check rev msg and ticket
+        self.verify_log_rev(sandbox_path, commit_msg, revision)
+        commit_msg = "(In [%s]) %s" % (revision, commit_msg)
+        self.verify_ticket_entry(ticket_id, revision, commit_msg,
+                                 sandbox_path, "thisone")
+
+
+class TK_11(TestCaseAbstract):
+
+    """
+    Test name: TK_11, sandbox from trunk, two open milestones,
+               close ticket, close allowed
+
+    Objective:
+        * check that ticket can be closed if a valid milestone exist
+        * check that the milestone is automatically set correctly
+
+    Pass Criteria:
+        * close operation should succeed
+        * milestone should be set automatically to "thisone"
+    """
+
+    def runTest(self):
+        # Update trunk
+        self.svn_update('')
+
+        # this does not work anymore as the roadmap page loads content
+        # dynamically
+        # self._tester.create_milestone('Next', '09/04/18')
+
+        # remove predefined milestones
+        self._testenv._tracadmin('milestone', 'remove', 'milestone1')
+        self._testenv._tracadmin('milestone', 'remove', 'milestone2')
+        self._testenv._tracadmin('milestone', 'remove', 'milestone3')
+        self._testenv._tracadmin('milestone', 'remove', 'milestone4')
+
+        # create 'Next' milestone using admin interface
+        self._testenv._tracadmin('milestone', 'add', 'Next', '09/04/18')
+        # create two opened milestones
+        self._testenv._tracadmin('milestone', 'add', 'thisone', '09/04/17')
+        self._testenv._tracadmin('milestone', 'add', 'notthisone', '01/01/18')
+
+        print "milestones created"
+
+        # create ticket
+        summary = 'ticket for tk_10'
+        info = {'milestone': 'Next'}
+        ticket_id = self._tester.create_ticket(summary=summary, info=info)
+        print "ticket created"
+        self.sandbox_create(ticket_id, close=False)
+        print "sandbox created"
         # close ticket
         sandbox_path = 'sandboxes/t%s' % ticket_id
         self.svn_add(sandbox_path, 'driver-i2c_213.py', '# Header')
@@ -541,7 +598,8 @@ def functionalSuite(suite=None):
         #suite.addTest(TK_07())
         #suite.addTest(TK_08())
         #suite.addTest(TK_09())
-        suite.addTest(TK_10())
+        #suite.addTest(TK_10())
+        suite.addTest(TK_11())
     return suite
 
 
