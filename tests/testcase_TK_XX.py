@@ -403,7 +403,8 @@ class TK_08(TestCaseAbstract):
 class TK_09(TestCaseAbstract):
 
     """
-    Test name: TK_09, sandbox from trunk, no open milestone, no close allowed
+    Test name: TK_09, sandbox from trunk, no open valid milestone,
+               no close allowed
 
     Objective:
         * check that ticket cannot be closed if no suitable
@@ -441,7 +442,7 @@ class TK_09(TestCaseAbstract):
                 self.sandbox_create(ticket_id, close=True)
 
             msg = cm.exception.message
-            expected_msg = 'No defined next milestone'
+            expected_msg = 'No defined next milestone for branch'
             self.assertFalse(msg.find(expected_msg) == -1,
                              msg="Missing error message='%s', got "
                              "message='%s'" % (expected_msg, msg))
@@ -532,8 +533,11 @@ class TK_11(TestCaseAbstract):
         # create 'Next' milestone using admin interface
         self._testenv._tracadmin('milestone', 'add', 'Next', '09/04/18')
         # create two opened milestones
-        self._testenv._tracadmin('milestone', 'add', 'thisone', '09/04/17')
-        self._testenv._tracadmin('milestone', 'add', 'notthisone', '01/01/18')
+        self._testenv._tracadmin('milestone', 'add','notthisone', '01/01/16')
+        self._testenv._tracadmin('milestone', 'add',
+                                 'SDK2-thisone', '09/04/17')
+        self._testenv._tracadmin('milestone', 'add',
+                                 'SDK2-notthisone', '01/01/18')
 
         try:
             # create ticket
@@ -550,11 +554,12 @@ class TK_11(TestCaseAbstract):
             self.verify_log_rev(sandbox_path, commit_msg, revision)
             commit_msg = "(In [%s]) %s" % (revision, commit_msg)
             self.verify_ticket_entry(ticket_id, revision, commit_msg,
-                                     sandbox_path, "thisone")
+                                     sandbox_path, "SDK2-thisone")
         finally:
             self._testenv._tracadmin('milestone', 'remove', 'Next')
             self._testenv._tracadmin('milestone', 'remove', 'notthisone')
-            self._testenv._tracadmin('milestone', 'remove', 'thisone')
+            self._testenv._tracadmin('milestone', 'remove', 'SDK2-notthisone')
+            self._testenv._tracadmin('milestone', 'remove', 'SDK2-thisone')
 
 
 class TK_12(TestCaseAbstract):
@@ -599,7 +604,7 @@ class TK_12(TestCaseAbstract):
                 self.sandbox_create(ticket_id, branch_from=branch, close=True)
             # check error message
             msg = cm.exception.message
-            expected_msg = 'No defined next milestone for project'
+            expected_msg = 'No defined next milestone for branch'
             self.assertFalse(msg.find(expected_msg) == -1,
                              msg="Missing error message='%s', got "
                              "message='%s'" % (expected_msg, msg))
@@ -684,14 +689,14 @@ def functionalSuite(suite=None):
 
     if not suite:
         suite = TestFunctionalTestSuite()
-        suite.addTest(TK_01())
-        suite.addTest(TK_02())
-        suite.addTest(TK_03())
-        suite.addTest(TK_04())
-        suite.addTest(TK_05())
-        suite.addTest(TK_06())
-        suite.addTest(TK_07())
-        suite.addTest(TK_08())
+        #suite.addTest(TK_01())
+        #suite.addTest(TK_02())
+        #suite.addTest(TK_03())
+        #suite.addTest(TK_04())
+        #suite.addTest(TK_05())
+        #suite.addTest(TK_06())
+        #suite.addTest(TK_07())
+        #suite.addTest(TK_08())
         suite.addTest(TK_09())
         suite.addTest(TK_10())
         suite.addTest(TK_11())

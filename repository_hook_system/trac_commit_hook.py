@@ -56,7 +56,7 @@ externals_pattern = \
                r':?source:?(?P<url>[a-zA-Z0-9\/._-]+)@(?P<rev>[0-9]+)\]')
 
 sandbox_pattern = re.compile(r'^/sandboxes/.*')
-branch_pattern = re.compile(r'^/branches/(?P<pname>\w+)-.+')
+branch_pattern = re.compile(r'^/(branches|platforms)/(?P<pname>\w+)-.+')
 ticket_pattern = re.compile(r'#(?P<ticket>\d+)')
 #
 # SVN properties
@@ -210,18 +210,18 @@ class CommitHook(object):
         print>>sys.stderr, 'No known action in log message !'
         self.finalize(ERROR)
 
-    def _next_milestone(self, project_name=None):
+    def _next_milestone(self, prefix=None):
         """
         Returns the next milestone (i.e. the first non-completed milestone by
         chronological order)
         """
         xms = EXCLUDED_MILESTONES + [TBD_MILESTONE]
         candidates_ms = Milestone.select(self.env, False)
-        if project_name is None:
+        if prefix is None:
             ms = [m.name for m in candidates_ms if m.name not in xms]
         else:
             ms = [m.name for m in candidates_ms if m.name not in xms
-                  and m.name.lower().startswith(project_name)]
+                  and m.name.lower().startswith(prefix.lower())]
         return ms and ms[0] or None
 
     def _collect_branch_revs(self, rev1, rev2):
@@ -420,6 +420,16 @@ class CommitHook(object):
         src_rev, src_branch = src
 
         # chose a milestone
+        bname = src_branch.rsplit('/')[-1]
+        if self.env.config.has_option('milestones_prefixes', bname):
+            prefix = self.env.config.get('milestones_prefixes', bname)
+        else:
+            prefix = bname.rsplit('-')[0]
+        milestone = self._next_milestone(prefix)
+        self.env.log.debug("prefix '%s', milestone '%s",
+                           prefix, milestone)
+        """
+        # chose a milestone
         project = None
         if src_branch == trunk_directory:
             # select opened milestone with earliest due date
@@ -434,12 +444,15 @@ class CommitHook(object):
                 milestone = self._next_milestone(project)
             else:
                 milestone = None
+        """
 
         # if no milestone, use default value if defined in Trac config
         if milestone is None:
             milestone = self.env.config.get('ticket',
                                       'default_closing_milestone', None)
-        return milestone, project
+        self.env.log.debug("prefix '%s', milestone '%s",
+                           prefix, milestone)
+        return milestone, bname
 
 class PreCommitHook(CommitHook):
 
@@ -698,13 +711,10 @@ class PreCommitHook(CommitHook):
         self._pre_cmd_closes(ticket_id)
 
         # find original branch and target milestone
-        milestone, project = self._get_milestone_and_project()
+        milestone, branch = self._get_milestone_and_project()
         if milestone is None and self._is_ticket_invalid_milestone(ticket_id):
             if not self._is_admin(self.author) or not force:
-                if project:
-                    msg = "No defined next milestone for project '%s'" % project
-                else:
-                    msg = 'No defined next milestone'
+                msg = "No defined next milestone for branch '%s'" % branch
                 print >> sys.stderr, msg
                 self.env.log.debug("  %s", msg)
                 self.finalize(ERROR)

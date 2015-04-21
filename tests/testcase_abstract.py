@@ -167,6 +167,8 @@ class TestSuiteEnvironment(SvnFunctionalTestEnvironment):
         config.set('ticket',
                    'default_component',
                    'Component')
+        config.set('milestones_prefixes', 'trunk', 'SDK2')
+
 
         config.save()
 
