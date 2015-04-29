@@ -5,7 +5,7 @@ from random import randint
 from subprocess import Popen, PIPE
 from xml.etree import ElementTree
 import re
-import sys
+import os
 import urlparse
 import xml.etree.ElementTree as et
 from trac.tests.functional import *
