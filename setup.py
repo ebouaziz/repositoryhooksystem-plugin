@@ -1,6 +1,6 @@
 from setuptools import find_packages, setup
 
-version = '0.1.14'
+version = '0.1.15'
 
 setup(name='RepositoryHookSystem',
       version=version,
@@ -15,11 +15,10 @@ setup(name='RepositoryHookSystem',
       package_data={'repository_hook_system': ['templates/*']},
       zip_safe=False,
       install_requires=['python-dateutil', 'Trac >= 1.0.0'],
-      entry_points="""
-      [trac.plugins]
-      repository_hook_system.neoticketchanger = repository_hook_system.neoticketchanger
-      repository_hook_system.ticket_validator = repository_hook_system.ticket_validator
-      repository_hook_system.listener = repository_hook_system.listener
-      repository_hook_system.admin = repository_hook_system.admin
-      repository_hook_system.svnhooksystem.svnhooksystem = repository_hook_system.svnhooksystem.svnhooksystem
-      """)
+      entry_points={'trac.plugins':
+        ['repository_hook_system.neoticketchanger = repository_hook_system.neoticketchanger',
+         'repository_hook_system.ticket_validator = repository_hook_system.ticket_validator',
+         'repository_hook_system.listener = repository_hook_system.listener',
+         'repository_hook_system.admin = repository_hook_system.admin',
+         'repository_hook_system.svnhooksystem.svnhooksystem = repository_hook_system.svnhooksystem.svnhooksystem']
+      })

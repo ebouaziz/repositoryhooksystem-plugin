@@ -6,15 +6,56 @@
 	xmlns:py="http://genshi.edgewall.org/">
 <xi:include href="admin.html" />
 <head>
-<title>Ticket Submit Policy</title>
+  <title>Repository Hook System</title>
 </head>
 <body>
-	<h2>Repository Hooks</h2>
-	<form method="post">
-		<fieldset>
-			<legend>${hook}</legend>
-			<div>${snippet}</div>
-		</fieldset>
-	</form>
+    <h2>Repository Hooks</h2>
+    <form class="addnew" id="addentry" method="POST">
+      <fieldset>
+        <legend>Add association:</legend>
+        <div class="field">
+          <label>Branch name:<br />
+            <input type="text" name="name" id="name" />
+          </label>
+        </div>
+        <div class="field">
+          <label>Milestone prefix:<br />
+            <input type="text" name="prefix" id="prefix" />
+          </label>
+        </div>
+        <div class="buttons">
+          <input type="submit" name="add" value="${_('Add')}" />
+        </div>
+      </fieldset>
+    </form>
+
+    <div py:strip="">
+      <p py:if="not len(aslist)" class="help">
+        No branch-mileston association defined for this project.
+      </p>
+      <form py:if="len(aslist)" method="POST">
+        <table class="listing" id="aslist">
+          <thead>
+            <tr>
+              <th class="sel">&nbsp;</th>
+              <th>Branch name</th>
+              <th>Milestone prefix</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr py:for="ass in aslist">
+              <td><input type="checkbox" name="sel" value="${ass.name}"/></td>
+              <td>${ass.name}</td>
+              <td>${ass.prefix}</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="buttons">
+          <input type="submit" name="remove"
+                 value="${_('Remove selected items')}" />
+        </div>
+      </form>
+    </div>
+
 </body>
 </html>

@@ -27,7 +27,7 @@ from trac.config import Option
 from trac.ticket import Ticket, Milestone
 from trac.ticket.notification import TicketNotifyEmail
 from trac.util.datefmt import utc, to_timestamp, to_datetime
-from trac.env import open_environment
+from trac.env import open_environment, Db
 import os
 import re
 import sys
@@ -112,6 +112,7 @@ class CommitHook(object):
                  txn=None,
                  rep=None):
         self.env = env
+        self.db = Db(env)
         # needed to use Options
         self.config = self.env.config
 
@@ -421,30 +422,12 @@ class CommitHook(object):
 
         # chose a milestone
         bname = src_branch.rsplit('/')[-1]
-        if self.env.config.has_option('milestones_prefixes', bname):
-            prefix = self.env.config.get('milestones_prefixes', bname)
-        else:
+        prefix = self.db.get_milestone_prefix(bname)
+        if not prefix:
             prefix = bname.rsplit('-')[0]
         milestone = self._next_milestone(prefix)
         self.env.log.debug("prefix '%s', milestone '%s",
                            prefix, milestone)
-        """
-        # chose a milestone
-        project = None
-        if src_branch == trunk_directory:
-            # select opened milestone with earliest due date
-            milestone = self._next_milestone()
-        else:
-            # get project name from branch
-            mo = branch_pattern.match(src_branch)
-            if mo:
-                # select opened milestone with earliest due date that starts
-                # with projects name
-                project = mo.group('pname')
-                milestone = self._next_milestone(project)
-            else:
-                milestone = None
-        """
 
         # if no milestone, use default value if defined in Trac config
         if milestone is None:
