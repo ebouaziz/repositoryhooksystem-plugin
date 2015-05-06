@@ -5,6 +5,7 @@
 
 __all__ = ['Db']
 
+
 class Db(object):
     """
     """
@@ -15,10 +16,9 @@ class Db(object):
         self.env = env
         self.log = env.log
 
-    @staticmethod
-    def _get_db_version(env):
+    def _get_db_version(self):
         try:
-            rows = env.db_query(
+            rows = self.env.db_query(
                 "SELECT value FROM system WHERE name='rhsversion'")
             return int(rows[0][0])
         except:
@@ -26,7 +26,7 @@ class Db(object):
 
     def verify(self):
         self.log.debug('Verify Database')
-        ver = self._get_db_version(self.env)
+        ver = self._get_db_version()
         if ver != Db.VERSION:
             self.log.error('Database version is %s, expected %s' %
                            (ver, Db.VERSION))
@@ -35,7 +35,7 @@ class Db(object):
 
     def upgrade(self):
         self.log.debug('Upgrade Database')
-        ver = self._get_db_version(self.env)
+        ver = self._get_db_version()
         # Perform incremental upgrades.
         for i in range(ver + 1, self.VERSION + 1):
             script_name = 'db%i' % i
