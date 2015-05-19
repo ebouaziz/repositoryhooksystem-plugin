@@ -2,6 +2,7 @@
 # Copyright (C) 2015 Neotion
 # All rights reserved.
 #-----------------------------------------------------------------------------
+import re
 
 __all__ = ['Db']
 
@@ -57,10 +58,13 @@ class Db(object):
         return [{'name': n, 'prefix': p} for n, p in rows]
 
     def get_milestone_prefix(self, branch_name):
-        rows = self.env.db_query("SELECT ms_prefix FROM rhs_br_ms_assoc "
-                                 "WHERE branch=%s" % branch_name)
-        row = rows[0] if rows else None
-        if not row:
-            return None
+        rows = self.env.db_query("SELECT branch,ms_prefix FROM rhs_br_ms_assoc")
+        for branch, prefix in rows:
+            if branch == branch_name:
+                return prefix
+            else:
+                m = re.match(branch, branch_name)
+                if m:
+                    return prefix
         else:
-            return row[0]
+            return None

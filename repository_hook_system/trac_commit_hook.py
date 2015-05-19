@@ -21,13 +21,14 @@
 
 from ConfigParser import ConfigParser
 from datetime import datetime, timedelta
+from repository_hook_system.db import Db
 from repository_hook_system.errors import HookStatus
 from repproxy import RepositoryProxy
 from trac.config import Option
 from trac.ticket import Ticket, Milestone
 from trac.ticket.notification import TicketNotifyEmail
 from trac.util.datefmt import utc, to_timestamp, to_datetime
-from trac.env import open_environment, Db
+from trac.env import open_environment
 import os
 import re
 import sys
@@ -97,6 +98,11 @@ class CommitHook(object):
     forbidden_components_on_close = Option('ticket',
         'forbidden_components_on_close', 'Triage, None',
         """A ticket cannot be closed if its component is in that list""")
+    project_name_re = Option('ticket', 'project_name_re',
+        r'/(branches|platforms)/(?P<name>[A-Za-z0-9]+)'
+        r'(_(?P<cert>(cert|dvt)))?(\-(?P<ext>[0-9\.xyz]+))?',
+        """RE to guess the projet name from the branch name""")
+
 
     _ticket_cmds = {'closes': '_cmd_closes',
                     'fixes': '_cmd_closes',
@@ -115,6 +121,7 @@ class CommitHook(object):
         self.db = Db(env)
         # needed to use Options
         self.config = self.env.config
+        self.project_name_cre = re.compile(self.project_name_re)
 
         # Initialization
         self._fbden_cp_on_close = [
@@ -421,10 +428,19 @@ class CommitHook(object):
         src_rev, src_branch = src
 
         # chose a milestone
-        bname = src_branch.rsplit('/')[-1]
-        prefix = self.db.get_milestone_prefix(bname)
+        bname = src_branch.rsplit('/', 1)[-1]
+
+        # from exceptions defined in the database
+        prefix = self.db.get_milestone_prefix(src_branch)
+
+        # or from the general rule
         if not prefix:
-            prefix = bname.rsplit('-')[0]
+            m = self.project_name_cre.match(src_branch)
+            if m:
+                prefix = m.group('name')
+            else:
+                self.env.log.info("Cannot get project name from branch for "
+                                  "'%s'", src_branch)
         milestone = self._next_milestone(prefix)
         self.env.log.debug("prefix '%s', milestone '%s",
                            prefix, milestone)
@@ -432,10 +448,11 @@ class CommitHook(object):
         # if no milestone, use default value if defined in Trac config
         if milestone is None:
             milestone = self.env.config.get('ticket',
-                                      'default_closing_milestone', None)
+                                            'default_closing_milestone', None)
         self.env.log.debug("prefix '%s', milestone '%s",
                            prefix, milestone)
         return milestone, bname
+
 
 class PreCommitHook(CommitHook):
 

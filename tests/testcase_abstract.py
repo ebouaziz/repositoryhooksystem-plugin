@@ -138,6 +138,24 @@ class TestSuiteEnvironment(SvnFunctionalTestEnvironment):
             fd.write(pre_commit)
         os.chmod(hook_path, 0o777)
 
+    def _init_db(self, env):
+        """
+        This method initialises Trac's databse for the tests
+
+        :param env: Trac environment
+        :type env:
+        """
+
+        # Upgrade env database
+        self._tracadmin('upgrade')
+
+        with env.db_transaction as db:
+            db("INSERT INTO rhs_br_ms_assoc (branch, ms_prefix) "
+               "VALUES('/trunk', 'SDK2')")
+            db("INSERT INTO rhs_br_ms_assoc (branch, ms_prefix) "
+               "VALUES('/branches/superproject(_(cert|dvt))?-3.y', "
+               "'Historical')")
+
     def _init_trac_ini(self, env):
         """
         This method initialises environment Trac.ini file.
@@ -167,9 +185,6 @@ class TestSuiteEnvironment(SvnFunctionalTestEnvironment):
         config.set('ticket',
                    'default_component',
                    'Component')
-        config.set('milestones_prefixes', 'trunk', 'SDK2')
-
-
         config.save()
 
     def post_create(self, env):
@@ -191,6 +206,9 @@ class TestSuiteEnvironment(SvnFunctionalTestEnvironment):
 
         # Init trac.ini configuration
         self._init_trac_ini(env)
+
+        # Init database
+        self._init_db(env)
 
     def process_call(self, args, path='', environ=None):
         """

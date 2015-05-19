@@ -517,7 +517,7 @@ class TK_11(TestCaseAbstract):
 
     Pass Criteria:
         * close operation should succeed
-        * milestone should be set automatically to "thisone"
+        * milestone should be set automatically to "SDK2-thisone"
     """
 
     def runTest(self):
@@ -533,7 +533,7 @@ class TK_11(TestCaseAbstract):
         # create 'Next' milestone using admin interface
         self._testenv._tracadmin('milestone', 'add', 'Next', '09/04/18')
         # create two opened milestones
-        self._testenv._tracadmin('milestone', 'add','notthisone', '01/01/16')
+        self._testenv._tracadmin('milestone', 'add', 'notthisone', '01/01/16')
         self._testenv._tracadmin('milestone', 'add',
                                  'SDK2-thisone', '09/04/17')
         self._testenv._tracadmin('milestone', 'add',
@@ -664,6 +664,60 @@ class TK_13(TestCaseAbstract):
                                      branchname+'-thisone')
 
 
+class TK_14(TestCaseAbstract):
+
+    """
+    Test name: TK_14, sandbox from branch, two open milestones, one matching
+               the branch name, exception entry for the branch,
+               close ticket, close allowed
+
+    Objective:
+        * check that ticket can be closed if a valid milestone exists
+        * check that the milestone is automatically set correctly
+
+    Pass Criteria:
+        * close operation should succeed
+        * milestone should be set automatically according to the registered
+          exception
+    """
+
+    def runTest(self):
+        # Update trunk
+        self.svn_update('')
+
+        # remove predefined milestones
+        self._testenv._tracadmin('milestone', 'remove', 'milestone1')
+        self._testenv._tracadmin('milestone', 'remove', 'milestone2')
+        self._testenv._tracadmin('milestone', 'remove', 'milestone3')
+        self._testenv._tracadmin('milestone', 'remove', 'milestone4')
+
+        # create 'Next' milestone using admin interface
+        self._testenv._tracadmin('milestone', 'add', 'Next', '09/04/18')
+        # create two opened milestones
+        branchname = 'superproject_dvt'
+        self._testenv._tracadmin('milestone', 'add',
+                                 branchname+'-notthisone', '01/01/18')
+        self._testenv._tracadmin('milestone', 'add',
+                                 'Historical-msname', '01/01/19')
+
+        try:
+            # create ticket
+            summary = 'ticket for tk_14'
+            info = {'milestone': 'Next'}
+            ticket_id = self._tester.create_ticket(summary=summary, info=info)
+            # create project branch
+            branch = 'branches/'+branchname+'-3.y'
+            self.branch_create(branch, "Creates new branch for TK_14")
+            # sandbox
+            self.sandbox_create(ticket_id, branch_from=branch, close=True)
+            self.verify_ticket_milestone(ticket_id, 'Historical-msname')
+        finally:
+            self._testenv._tracadmin('milestone', 'remove', 'Next')
+            self._testenv._tracadmin('milestone', 'remove', 'Historical-msname')
+            self._testenv._tracadmin('milestone', 'remove',
+                                     branchname+'-notthisone')
+
+
 def functionalSuite(suite=None):
     if not has_svn:
         raise Exception("Missing python-subversion module")
@@ -702,6 +756,7 @@ def functionalSuite(suite=None):
         suite.addTest(TK_11())
         suite.addTest(TK_12())
         suite.addTest(TK_13())
+        suite.addTest(TK_14())
     return suite
 
 

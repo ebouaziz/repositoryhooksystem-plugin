@@ -16,5 +16,5 @@ def do_upgrade(env):
         for table in SCHEMA:
             for stmt in db_connector.to_sql(table):
                 db(stmt)
-        db("INSERT INTO system (name, value) VALUES ('%s', %s)",
+        db("INSERT INTO system (name, value) VALUES ('%s', %s)" %
            ('rhsversion', VERSION))

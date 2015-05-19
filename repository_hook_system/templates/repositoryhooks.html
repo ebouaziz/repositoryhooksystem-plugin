@@ -7,6 +7,11 @@
 <xi:include href="admin.html" />
 <head>
   <title>Repository Hook System</title>
+  <script type="text/javascript">
+    jQuery(document).ready(function($) {
+      $("#addentry input[name='name']").suggest("${href.diff()}");
+    });
+  </script>
 </head>
 <body>
     <h2>Repository Hooks</h2>

@@ -10,7 +10,8 @@ from repository_hook_system.interface import IRepositoryHookAdminContributer
 from trac.admin.api import IAdminPanelProvider
 from trac.core import *
 from trac.env import IEnvironmentSetupParticipant
-from trac.web.chrome import ITemplateProvider
+from trac.util.translation import _
+from trac.web.chrome import ITemplateProvider, add_script, add_warning
 from db import Db
 
 class RepositoryHookAdmin(Component):
@@ -95,7 +96,10 @@ class RepositoryHookAdmin(Component):
             if req.args.get('add') and req.args.get('name'):
                 assoc = {'name': req.args.get('name','').encode('utf-8'),
                          'prefix': req.args.get('prefix','').encode('utf-8')}
-                self.db.add_association(assoc)
+                if not assoc['name'] or not assoc['prefix']:
+                    add_warning(req, _('Empty value not allowed'))
+                else:
+                    self.db.add_association(assoc)
                 req.redirect(req.href.admin(category, page))
             # Remove association
             elif req.args.get('remove') and req.args.get('sel'):
@@ -109,4 +113,5 @@ class RepositoryHookAdmin(Component):
                 req.redirect(req.href.admin(category, page))
 
         # data to display
+        add_script(req, 'common/js/suggest.js')
         return 'repositoryhooks.html', {'aslist': self.db.list_associations()}
