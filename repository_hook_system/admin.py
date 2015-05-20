@@ -73,21 +73,18 @@ class RepositoryHookAdmin(Component):
         The items returned by this function must be tuples of the form
         `(category, category_label, page, page_label)`.
         """
-        if req.perm.has_permission('TRAC_ADMIN'):
+        if req.perm.has_permission('MILESTONE_ADMIN'):
             yield ('repository_hooks', 'Repository Hooks',
                    'milestones', 'Milestones')
 
     def render_admin_panel(self, req, category, page, path_info):
-        req.perm.require('TICKET_ADMIN')
         """Process a request for an admin panel.
 
         This function should return a tuple of the form `(template, data)`,
         where `template` is the name of the template to use and `data` is the
         data to be passed to the template.
         """
-        self.env.log.debug("category: '%s'" % category)
-        self.env.log.debug("page: '%s'" % page)
-        self.env.log.debug("path_info: '%s'" % path_info)
+        req.perm.require('MILESTONE_ADMIN')
 
         if req.method == 'POST':
             # Add association
