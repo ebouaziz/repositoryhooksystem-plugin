@@ -73,7 +73,6 @@ class RepositoryHookAdmin(Component):
         The items returned by this function must be tuples of the form
         `(category, category_label, page, page_label)`.
         """
-        self.env.log.debug(">>>>>>>>> get_admin_panels <<<<<<<<<<")
         if req.perm.has_permission('TRAC_ADMIN'):
             yield ('repository_hooks', 'Repository Hooks',
                    'milestones', 'Milestones')
@@ -86,7 +85,6 @@ class RepositoryHookAdmin(Component):
         where `template` is the name of the template to use and `data` is the
         data to be passed to the template.
         """
-        self.env.log.debug(">>>>>>>>> render_admin_panel <<<<<<<<<<")
         self.env.log.debug("category: '%s'" % category)
         self.env.log.debug("page: '%s'" % page)
         self.env.log.debug("path_info: '%s'" % path_info)
