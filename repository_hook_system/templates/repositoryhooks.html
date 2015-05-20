@@ -36,14 +36,14 @@
 
     <div py:strip="">
       <p py:if="not len(aslist)" class="help">
-        No branch-milestone association defined for this project.
+        <b>No branch-milestone association defined for this project.</b>
       </p>
       <form py:if="len(aslist)" method="POST">
         <table class="listing" id="aslist">
           <thead>
             <tr>
               <th class="sel">&nbsp;</th>
-              <th>Branch name</th>
+              <th>Branch name or pattern</th>
               <th>Milestone prefix</th>
             </tr>
           </thead>
@@ -60,7 +60,21 @@
                  value="${_('Remove selected items')}" />
         </div>
       </form>
+        <p class="help">
+          By default, the RHS will automatically set the milestone of a ticket
+          depending on the source branch of the associated ticket: The milestone is
+          chosen based on the name of the branch and due date of opened milestones.
+        </p>
+        <p class="help">
+          For example: a ticket with a sandbox from <code>/branches/indri_cert-1.x</code>
+          will be assigned the opened milestone with the nearest due date starting with
+          "Indri".
+        </p>
+        <p class="help">
+          If you have branches that do not obey this rule (like the trunk), you can
+          use this page to add exceptions. You may use a pattern like:
+          <code>/branches/indri(_(cert|dvt))?\-[12]\.[nxyz]</code>
+        </p>
     </div>
-
 </body>
 </html>

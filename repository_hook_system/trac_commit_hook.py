@@ -103,7 +103,6 @@ class CommitHook(object):
         r'(_(?P<cert>(cert|dvt)))?(\-(?P<ext>[0-9\.xyz]+))?',
         """RE to guess the projet name from the branch name""")
 
-
     _ticket_cmds = {'closes': '_cmd_closes',
                     'fixes': '_cmd_closes',
                     'refs': '_cmd_refs'}
@@ -442,15 +441,15 @@ class CommitHook(object):
                 self.env.log.info("Cannot get project name from branch for "
                                   "'%s'", src_branch)
         milestone = self._next_milestone(prefix)
-        self.env.log.debug("prefix '%s', milestone '%s",
+        self.env.log.debug("prefix '%s', milestone '%s'",
                            prefix, milestone)
 
         # if no milestone, use default value if defined in Trac config
         if milestone is None:
             milestone = self.env.config.get('ticket',
                                             'default_closing_milestone', None)
-        self.env.log.debug("prefix '%s', milestone '%s",
-                           prefix, milestone)
+        self.env.log.debug("prefix '%s', milestone '%s', type %s",
+                           prefix, milestone, type(milestone))
         return milestone, bname
 
 
