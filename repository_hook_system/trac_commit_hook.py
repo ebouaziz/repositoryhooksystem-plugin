@@ -320,6 +320,13 @@ class CommitHook(object):
                     ticket_dict[tkid].append([rev_author, rev_log])
                 else:
                     ticket_dict[tkid] = [[rev_author, rev_log]]
+            mo = create_pattern.match(rev_log)
+            if mo:
+                tkid = int(mo.group('ticket'))
+                if tkid in ticket_dict:
+                    ticket_dict[tkid].append([rev_author, rev_log])
+                else:
+                    ticket_dict[tkid] = [[rev_author, rev_log]]
         return ticket_dict
 
     def _is_txn_with_multiple_branches(self):
@@ -636,10 +643,10 @@ class PreCommitHook(CommitHook):
         self.finalize(ERROR)
 
     def _cmd_terminates(self, force):
-        '''
+        """
         Branch deletion
         Check that this is a valid and owned branch
-        '''
+        """
         change_gen = self.proxy.get_txn_changed_paths()
         try:
             item = change_gen.next()
@@ -1030,10 +1037,10 @@ class PostCommitHook(CommitHook):
         return OK
 
     def _cmd_terminates(self, force):
-        '''
+        """
         Branch deletion
-        Add backlink to the termination revision all related tickets
-        '''
+        Add back-link to the termination revision in all related tickets
+        """
         path = self.proxy.get_revision_changed_paths(self.rev).next()[0]
 
         # We only want to update ticket related to developer branches

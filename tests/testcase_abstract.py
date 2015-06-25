@@ -4,11 +4,24 @@
 from random import randint
 from subprocess import Popen, PIPE
 from xml.etree import ElementTree
-import re
 import os
+import re
 import urlparse
 import xml.etree.ElementTree as et
-from trac.tests.functional import *
+try:
+    from trac.tests.functional import (SvnFunctionalTestEnvironment,
+        FunctionalTestSuite, FunctionalTwillTestCaseSetup, close_fds, tc)
+except ImportError as e:
+    try:
+        import cssselect
+        import requests
+        import lxml
+        import twill
+    except ImportError:
+        raise AssertionError("The following modules are needed to run these "
+            "tests: cssselect, requests, lxml, twill.")
+    else:
+        raise e
 
 
 # Test case exception
@@ -39,7 +52,7 @@ class TestSuiteEnvironment(SvnFunctionalTestEnvironment):
         """
         SvnFunctionalTestEnvironment.__init__(self, dirname, port, url)
         if not getattr(self, "logfile", None):
-            self.logfile = logfile
+            self.logfile = logfile  # note: logfile is not defined anywhere...
 
         # Add component
         self._tracadmin('component', 'add', 'Triage')
@@ -398,6 +411,33 @@ class TestCaseAbstract(FunctionalTwillTestCaseSetup):
             raise Exception(*args)
         return int(rev)
 
+    def svn_delete(self, branch, msg):
+        """
+        SVN delete method, used to terminate a branch
+
+        :param branch: branch to delete
+        :type branch: str
+        :param msg: commit message
+        :type msg: str
+        :raises: Exception if revision can not be parsed from output
+        """
+
+        cmd = ['svn', 'delete',
+               urlparse.urljoin(self._testenv.repo_url() + '/', branch),
+               '-m', msg]
+
+        output = self._testenv.process_call(cmd)
+        try:
+            rev = re.search(r'Committed revision ([0-9]+)\.', output).group(1)
+        except Exception as e:
+            args = e.args + (output, )
+            raise Exception(*args)
+
+        # Update repository root
+        self.svn_update('')
+
+        return int(rev)
+
     def svn_property_set(self, path, property_name, property_value):
         """
 
@@ -579,14 +619,13 @@ class TestCaseAbstract(FunctionalTwillTestCaseSetup):
 
         return revision
 
-    def sandbox_create(self, ticket_id, branch_from='trunk',
-                       close=True):
-        sandbox_path = 'sandboxes/t%s' % ticket_id
-
+    def create_sandbox(self, ticket_id, branch_from, sandbox_path):
+        """creates a sandbox, checks the associated ticket and returns
+           the revision
+        """
         # Creates sandbox from trunk/component
         commit_msg = 'Creates t%s for #%s' % (ticket_id, ticket_id)
         revision = self.svn_cp(branch_from, sandbox_path, commit_msg)
-        first_rev = revision
 
         # Verify revision log
         self.verify_log_rev(sandbox_path, commit_msg, revision)
@@ -594,6 +633,37 @@ class TestCaseAbstract(FunctionalTwillTestCaseSetup):
         # Verify ticket entry
         commit_msg = "(In [%s]) %s" % (revision, commit_msg)
         self.verify_ticket_entry(ticket_id, revision, commit_msg, sandbox_path)
+
+        return revision
+
+    def terminate_sandbox(self, ticket_ids, sandbox_path):
+        """terminates a sandbox, checks the associated tickets and return the
+           revision
+        """
+        # Delete the sandbox
+        commit_msg = 'Terminates sandbox'
+        revision = self.svn_delete(sandbox_path, commit_msg)
+
+        # Verify revision log
+        # the sandbox does not exist anymore so use /sandboxes
+        self.verify_log_rev(sandbox_path.rsplit('/', 1)[0],
+                            commit_msg, revision)
+
+        # Verify tickets entry
+        for ticket_id in ticket_ids:
+            commit_msg = "Sandbox /sandboxes/t%d terminated at [%d]" % \
+                         (ticket_id, revision)
+            self.verify_ticket_entry(ticket_id, revision, commit_msg,
+                                     sandbox_path.rsplit('/', 1)[0])
+
+    def sandbox_create(self, ticket_id, branch_from='trunk',
+                       close=True):
+        """creates a sandbox, adds a commits and optionaly closes the ticket
+        """
+        sandbox_path = 'sandboxes/t%s' % ticket_id
+
+        # Create sandbox
+        first_rev = self.create_sandbox(ticket_id, branch_from, sandbox_path)
 
         # Add file data
         alea = randint(2, 200000)

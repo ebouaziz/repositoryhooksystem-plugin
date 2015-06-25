@@ -46,7 +46,13 @@ class TK_01(TestCaseAbstract):
     """
 
     def runTest(self):
-        self.do_delivers()
+        # create 'Next' milestone using admin interface
+        self._testenv._tracadmin('milestone', 'add', 'ThisOne', '09/04/18')
+
+        try:
+            self.do_delivers()
+        finally:
+            self._testenv._tracadmin('milestone', 'remove', 'ThisOne')
 
 
 class TK_02(TestCaseAbstract):
@@ -138,34 +144,40 @@ class TK_03(TestCaseAbstract):
     """
 
     def runTest(self):
-        # Creates tickets for sandbox
-        ticket_id, deliver_rev = self.do_delivers()
+        # create 'Next' milestone using admin interface
+        self._testenv._tracadmin('milestone', 'add', 'ThisOne', '09/04/18')
 
-        # Revert brings
-        cset = deliver_rev
-        self.svn_merge('trunk', 'trunk', (-1 * cset, ))
+        try:
+            # Creates tickets for sandbox
+            ticket_id, deliver_rev = self.do_delivers()
 
-        with self.assertRaises(TestCaseError) as cm:
-            # Commit reverts
-            commit_msg = 'Reverts [%s]' % cset
-            self.svn_commit('trunk', commit_msg)
+            # Revert brings
+            cset = deliver_rev
+            self.svn_merge('trunk', 'trunk', (-1 * cset, ))
 
-            msg = cm.exception.message
-            expected_msg = 'Commit blocked by pre-commit hook'
-            self.assertFalse(msg.find(expected_msg) == -1,
-                             msg="Missing error message='%s', got "
-                             "message='%s'" % (expected_msg, msg))
+            with self.assertRaises(TestCaseError) as cm:
+                # Commit reverts
+                commit_msg = 'Reverts [%s]' % cset
+                self.svn_commit('trunk', commit_msg)
 
-            expected_msg = 'No known action in log message !'
-            self.assertFalse(msg.find(expected_msg) == -1,
-                             msg="Missing error message='%s', got "
-                             "message='%s'" % (expected_msg, msg))
+                msg = cm.exception.message
+                expected_msg = 'Commit blocked by pre-commit hook'
+                self.assertFalse(msg.find(expected_msg) == -1,
+                                 msg="Missing error message='%s', got "
+                                 "message='%s'" % (expected_msg, msg))
 
-        os.system("rm -r %s" % os.path.join(self._testenv.work_dir()))
-        os.mkdir(self._testenv.work_dir())
+                expected_msg = 'No known action in log message !'
+                self.assertFalse(msg.find(expected_msg) == -1,
+                                 msg="Missing error message='%s', got "
+                                 "message='%s'" % (expected_msg, msg))
 
-        # checkout fresh copy
-        self.svn_co()
+            os.system("rm -r %s" % os.path.join(self._testenv.work_dir()))
+            os.mkdir(self._testenv.work_dir())
+
+            # checkout fresh copy
+            self.svn_co()
+        finally:
+            self._testenv._tracadmin('milestone', 'remove', 'ThisOne')
 
 
 class TK_04(TestCaseAbstract):
@@ -400,6 +412,7 @@ class TK_08(TestCaseAbstract):
         self.svn_commit('trunk',
                         'Externals [trac:source:branches@%s]' % branch_rev)
 
+
 class TK_09(TestCaseAbstract):
 
     """
@@ -504,6 +517,7 @@ class TK_10(TestCaseAbstract):
             self._testenv._tracadmin('milestone', 'remove', 'Next')
             self._testenv._tracadmin('milestone', 'remove', 'notthisone')
             self._testenv._tracadmin('milestone', 'remove', 'thisone')
+
 
 class TK_11(TestCaseAbstract):
 
@@ -613,6 +627,7 @@ class TK_12(TestCaseAbstract):
             self._testenv._tracadmin('milestone', 'remove',
                                      'lameproject-notthisone')
 
+
 class TK_13(TestCaseAbstract):
 
     """
@@ -718,9 +733,54 @@ class TK_14(TestCaseAbstract):
                                      branchname+'-notthisone')
 
 
+class TK_15(TestCaseAbstract):
+
+    """
+    Test name: TK_15, sandbox created from trunk and immediately deleted
+
+    Objective:
+        * check that the termination message is added to the ticket
+
+    Pass Criteria:
+        * termination message in the ticket
+    """
+
+    def runTest(self):
+        # Update trunk
+        self.svn_update('')
+
+        # remove predefined milestones
+        self._testenv._tracadmin('milestone', 'remove', 'milestone1')
+        self._testenv._tracadmin('milestone', 'remove', 'milestone2')
+        self._testenv._tracadmin('milestone', 'remove', 'milestone3')
+        self._testenv._tracadmin('milestone', 'remove', 'milestone4')
+
+        # create 'Next' milestone using admin interface
+        self._testenv._tracadmin('milestone', 'add', 'Next', '09/04/18')
+        self._testenv._tracadmin('milestone', 'add', 'ThisOne', '09/04/18')
+
+        try:
+            # create ticket
+            summary = 'ticket for tk_15'
+            info = {'milestone': 'Next'}
+            ticket_id = self._tester.create_ticket(summary=summary, info=info)
+
+            # create sandbox
+            sandbox_path = 'sandboxes/t%s' % ticket_id
+            self.create_sandbox(ticket_id, "trunk", sandbox_path)
+
+            # terminate sandbox
+            self.terminate_sandbox((ticket_id,), sandbox_path)
+
+        finally:
+            self._testenv._tracadmin('milestone', 'remove', 'Next')
+            self._testenv._tracadmin('milestone', 'remove', 'ThisOne')
+
+
 def functionalSuite(suite=None):
     if not has_svn:
-        raise Exception("Missing python-subversion module")
+        raise Exception("Missing python-subversion module, you may need to "
+            "copy it from you subversion installation to you virtualenv.")
 
     def is_testcase(obj):
         """ is_testcase """
@@ -757,6 +817,7 @@ def functionalSuite(suite=None):
         suite.addTest(TK_12())
         suite.addTest(TK_13())
         suite.addTest(TK_14())
+        suite.addTest(TK_15())
     return suite
 
 
