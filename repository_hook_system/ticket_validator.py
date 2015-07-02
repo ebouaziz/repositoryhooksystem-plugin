@@ -51,7 +51,7 @@ class TicketChangeValidator(Component):
         con.simple_bind_s()
 
         # send request
-        base_dn = ','.join(LDAP_PEOPLE, LDAP_BASE_DN)
+        base_dn = ','.join((LDAP_PEOPLE, LDAP_BASE_DN))
         for user, utype in ((ticket[t], t) for t in ('reporter', 'owner')):
             filter_ = '(&(mail=%s@neotion.com)(givenname=*))' % user
             res = con.search_s(base_dn, ldap.SCOPE_SUBTREE, filter_, ['uid'])
