@@ -1,4 +1,4 @@
-#from genshi.builder import tag
+import ldap
 from repository_hook_system.interface import IRepositoryHookSubscriber
 from repository_hook_system.trac_commit_hook import CommitHook
 from trac.config import BoolOption, Option, IntOption
@@ -25,15 +25,36 @@ class TicketChangeValidator(Component):
         self._fbden_ms_on_close = [
             m.strip() for m in self.forbidden_milestones_on_close.split(',')]
 
-
     # ITicketManipulator implementation
     def prepare_ticket(self, req, ticket, fields, actions):
         pass
 
     def validate_ticket(self, req, ticket):
+        # check that the component and milestone are not in the forbidden list
+        # when the ticket is closed
         if ticket['status'] == 'closed' and \
                 not req.perm.has_permission('TICKET_ADMIN'):
             if ticket['component'] in self._fbden_cp_on_close:
                 yield 'component', tag_('Fix ticket component before closing')
             if ticket['milestone'] in self._fbden_ms_on_close:
                 yield 'milestone', tag_('Fix ticket milestone before closing')
+
+        # check that the reporter and owner are valid LDAP users
+
+        # TODO: get ldap parameters from [ldap] section
+        LDAP_URL = 'ldap://ldap.neotion.pro'
+        LDAP_BASE_DN = 'dc=neotion,dc=com'
+        LDAP_PEOPLE = 'ou=people'
+
+        # connect
+        con = ldap.initialize(LDAP_URL)
+        con.simple_bind_s()
+
+        # send request
+        base_dn = ','.join(LDAP_PEOPLE, LDAP_BASE_DN)
+        for user, utype in ((ticket[t], t) for t in ('reporter', 'owner')):
+            filter_ = '(&(mail=%s@neotion.com)(givenname=*))' % user
+            res = con.search_s(base_dn, ldap.SCOPE_SUBTREE, filter_, ['uid'])
+            # report issue
+            if not res:
+                yield utype, tag_("'%s' is not a valid user" % ticket[utype])
