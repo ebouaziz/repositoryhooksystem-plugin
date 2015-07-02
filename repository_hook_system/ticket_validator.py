@@ -11,6 +11,12 @@ class TicketChangeValidator(Component):
     #implements(ITicketManipulator, IRepositoryHookSubscriber)
     implements(ITicketManipulator)
 
+    # TODO: get ldap parameters from [ldap] section
+    LDAP_URL = 'ldap://ldap.neotion.pro'
+    LDAP_BASE_DN = 'dc=neotion,dc=com'
+    LDAP_PEOPLE = 'ou=people'
+    ALLOWED_USERS = ('< default >',)
+
     forbidden_milestones_on_close = Option('ticket',
         'forbidden_milestones_on_close', 'Next',
         """A ticket cannot be closed if its milestone is in that list""")
@@ -41,18 +47,15 @@ class TicketChangeValidator(Component):
 
         # check that the reporter and owner are valid LDAP users
 
-        # TODO: get ldap parameters from [ldap] section
-        LDAP_URL = 'ldap://ldap.neotion.pro'
-        LDAP_BASE_DN = 'dc=neotion,dc=com'
-        LDAP_PEOPLE = 'ou=people'
-
         # connect
-        con = ldap.initialize(LDAP_URL)
+        con = ldap.initialize(self.LDAP_URL)
         con.simple_bind_s()
 
         # send request
-        base_dn = ','.join((LDAP_PEOPLE, LDAP_BASE_DN))
+        base_dn = ','.join((self.LDAP_PEOPLE, self.LDAP_BASE_DN))
         for user, utype in ((ticket[t], t) for t in ('reporter', 'owner')):
+            if user in self.ALLOWED_USERS:
+                continue
             filter_ = '(&(mail=%s@neotion.com)(givenname=*))' % user
             res = con.search_s(base_dn, ldap.SCOPE_SUBTREE, filter_, ['uid'])
             # report issue
