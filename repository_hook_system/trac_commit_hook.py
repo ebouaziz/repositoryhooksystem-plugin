@@ -73,7 +73,7 @@ dev_branch_dirs = ['/sandboxes']
 admin_branch_dirs = ['/tags', '/branches', '/platforms']
 trunk_directory = '/trunk'
 config_path = os.environ.get('ACCESS_CONF_PATH') or \
-    '/home/ebouaziz/tmp/toto/access.conf'
+    '/local/var/svn/config/access.conf'
 vendor_directory = '/vendor'
 
 # Milestones
