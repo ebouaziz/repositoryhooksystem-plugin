@@ -201,7 +201,7 @@ class CommitHook(object):
                           ticket_cmd.group('force') and True)
                 self.finalize(rc)
             else:
-                print>>sys.stderr, 'No supported action in log message !'
+                print>>sys.stderr, 'No supported action in log message!'
                 self.finalize(ERROR)
 
         # Externals changes commands
@@ -214,7 +214,7 @@ class CommitHook(object):
             self.finalize(rc)
 
         # Unrecognized log message
-        print>>sys.stderr, 'No known action in log message !'
+        print>>sys.stderr, 'No known action in log message!'
         self.finalize(ERROR)
 
     def _next_milestone(self, prefix=None):
