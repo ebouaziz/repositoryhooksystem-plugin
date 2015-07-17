@@ -72,8 +72,7 @@ mergeinfo_prop_name = 'svn:mergeinfo'
 dev_branch_dirs = ['/sandboxes']
 admin_branch_dirs = ['/tags', '/branches', '/platforms']
 trunk_directory = '/trunk'
-config_path = os.environ.get('ACCESS_CONF_PATH') or \
-    '/local/var/svn/config/access.conf'
+config_path = '/local/var/svn/config/access.conf'
 vendor_directory = '/vendor'
 
 # Milestones
@@ -92,6 +91,10 @@ class CommitHook(object):
     action keywords and some commun functions.
     """
 
+    # TODO remove this temporary setting once new policy is deployed everywhere
+    enforce_milestone_policy_on_close = Option('ticket',
+        'enforce_milestone_policy_on_close', True,
+        """Allows to disable the new milestone policy""")
     forbidden_milestones_on_close = Option('ticket',
         'forbidden_milestones_on_close', 'Next',
         """A ticket cannot be closed if its milestone is in that list""")
@@ -385,7 +388,9 @@ class CommitHook(object):
         """
         config = ConfigParser()
         if not os.path.isfile(config_path):
-            raise AssertionError('Unable to find Subversion ACL for admins')
+            raise AssertionError('env: %s' % os.environ.keys())
+            raise AssertionError('Unable to find Subversion ACL for admins: %s'
+                                 % config_path)
         config.read(config_path)
         admins = config.get('groups', 'admins')
         if not admins:
@@ -688,7 +693,7 @@ class PreCommitHook(CommitHook):
 
     def _pre_cmd_closes(self, ticket_id):
         if not self._is_ticket_open(ticket_id):
-            print >> sys.stderr, 'The ticket %d mentionned in the log ' \
+            print >> sys.stderr, 'The ticket %d mentioned in the log ' \
                 'message must be open.' % ticket_id
             self.finalize(ERROR)
         if not self._is_txn_branch_directory():
@@ -697,19 +702,19 @@ class PreCommitHook(CommitHook):
             self.finalize(ERROR)
 
     def _cmd_closes(self, ticket_id, force):
-        '''
+        """
         Ticket close
         Check that the component is set correctly
         Check that the ticket is open
         Check that the operation occurs in a branch
         Find what branch the sandbox was copied from
         Deduce the applicable milestone
-        '''
+        """
         # check component
         self.env.log.debug("> pre_cmd_closes")
         if not self._is_admin(self.author) or not force:
             if self._is_ticket_invalid_component(ticket_id):
-                print >> sys.stderr, 'Please correct component of #%d' \
+                print >> sys.stderr, 'Please correct component for #%d' \
                                      % ticket_id
                 self.finalize(ERROR)
 
@@ -717,13 +722,14 @@ class PreCommitHook(CommitHook):
         self._pre_cmd_closes(ticket_id)
 
         # find original branch and target milestone
-        milestone, branch = self._get_milestone_and_project()
-        if milestone is None and self._is_ticket_invalid_milestone(ticket_id):
-            if not self._is_admin(self.author) or not force:
-                msg = "No defined next milestone for branch '%s'" % branch
-                print >> sys.stderr, msg
-                self.env.log.debug("  %s", msg)
-                self.finalize(ERROR)
+        if self.enforce_milestone_policy_on_close:
+            milestone, branch = self._get_milestone_and_project()
+            if milestone is None and self._is_ticket_invalid_milestone(ticket_id):
+                if not self._is_admin(self.author) or not force:
+                    msg = "No defined next milestone for branch '%s'" % branch
+                    print >> sys.stderr, msg
+                    self.env.log.debug("  %s", msg)
+                    self.finalize(ERROR)
         self.env.log.debug("< pre_cmd_closes")
         return OK
 
@@ -1074,13 +1080,14 @@ class PostCommitHook(CommitHook):
             ticket.save_changes(self.author,
                                 'Sandbox [source:%s@%d /%s] terminated at [%s]' %
                                 (path, revs[-1], path, self.rev), changetime)
-
-            # Do not notify mail for terminates operation
-            # tn = TicketNotifyEmailEx(self.env, [self._get_author(),])
-            # tn.notify(ticket, newticket=0, modtime=changetime)
         return OK
 
     def _cmd_creates(self, ticket_str):
+        """
+        Sandbox creation
+        Add back-link to the revision in the ticket
+        Mark the ticket as accepted
+        """
         self.env.log.debug("> post_cmd_creates #%s, rev=%s",
                            ticket_str, self.rev)
         if ticket_str:
@@ -1110,24 +1117,25 @@ class PostCommitHook(CommitHook):
         return OK
 
     def _cmd_closes(self, ticket_id, force):
-        '''
+        """
         Ticket closes
         Add backlink to the revision in the ticket
+        Set the milestone
         Close the ticket
-        '''
+        """
         self.env.log.debug("> post_cmd_closes, #%s force=%s", ticket_id, force)
         ticket_msg = "(In [%d]) %s" % (self.rev, self.log)
         # FIXME: replace self.now with the actual svn:date commit time
         # fix this in other script locations as well...
         commit_date = self.now
         try:
-            milestone, project = self._get_milestone_and_project()
-            self.env.log.debug("  ms '%s', pj '%s'", milestone, project)
             ticket = Ticket(self.env, ticket_id)
-            self.env.log.debug("got ticket")
-            if milestone is not None and \
-                    self._is_ticket_invalid_milestone(ticket_id):
-                ticket['milestone'] = milestone
+            if self.enforce_milestone_policy_on_close:
+                milestone, project = self._get_milestone_and_project()
+                self.env.log.debug("  ms '%s', pj '%s'", milestone, project)
+                if milestone is not None and \
+                        self._is_ticket_invalid_milestone(ticket_id):
+                    ticket['milestone'] = milestone
             ticket['status'] = 'closed'
             ticket['resolution'] = 'fixed'
             ticket.save_changes(self.author, ticket_msg, commit_date)

@@ -267,7 +267,7 @@ class TK_05(TestCaseAbstract):
                          msg="Missing error message='%s', got "
                          "message='%s'" % (expected_msg, msg))
 
-        expected_msg = 'Please correct component of #'
+        expected_msg = 'Please correct component for #'
         self.assertFalse(msg.find(expected_msg) == -1,
                          msg="Missing error message='%s', got "
                          "message='%s'" % (expected_msg, msg))
@@ -308,7 +308,7 @@ class TK_06(TestCaseAbstract):
                          msg="Missing error message='%s', got "
                          "message='%s'" % (expected_msg, msg))
 
-        expected_msg = 'Please correct component of #'
+        expected_msg = 'Please correct component for #'
         self.assertFalse(msg.find(expected_msg) == -1,
                          msg="Missing error message='%s', got "
                          "message='%s'" % (expected_msg, msg))
