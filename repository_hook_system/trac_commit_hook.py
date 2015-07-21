@@ -24,7 +24,7 @@ from datetime import datetime, timedelta
 from repository_hook_system.db import Db
 from repository_hook_system.errors import HookStatus
 from repproxy import RepositoryProxy
-from trac.config import Option
+from trac.config import Option, BoolOption
 from trac.ticket import Ticket, Milestone
 from trac.ticket.notification import TicketNotifyEmail
 from trac.util.datefmt import utc, to_timestamp, to_datetime
@@ -92,7 +92,7 @@ class CommitHook(object):
     """
 
     # TODO remove this temporary setting once new policy is deployed everywhere
-    enforce_milestone_policy_on_close = Option('ticket',
+    enforce_milestone_policy_on_close = BoolOption('ticket',
         'enforce_milestone_policy_on_close', True,
         """Allows to disable the new milestone policy""")
     forbidden_milestones_on_close = Option('ticket',

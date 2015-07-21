@@ -1,6 +1,6 @@
 from repository_hook_system.interface import IRepositoryHookSubscriber
 from repository_hook_system.trac_commit_hook import CommitHook
-from trac.config import BoolOption, Option, IntOption
+from trac.config import BoolOption, Option
 from trac.core import Component, implements
 from trac.ticket.api import ITicketManipulator
 from trac.util.translation import tag_
@@ -16,7 +16,7 @@ class TicketChangeValidator(Component):
     LDAP_PEOPLE = 'ou=people'
     ALLOWED_USERS = ('< default >',)
 
-    enforce_valid_ldap_user = Option('ticket',
+    enforce_valid_ldap_user = BoolOption('ticket',
         'enforce_valid_ldap_user', False,
         """Whether to enforce reporter and owner to be valid ldap users""")
     forbidden_milestones_on_close = Option('ticket',
