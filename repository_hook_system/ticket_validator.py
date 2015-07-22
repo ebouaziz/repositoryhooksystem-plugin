@@ -56,11 +56,11 @@ class TicketChangeValidator(Component):
             con = ldap.initialize(self.LDAP_URL)
             con.simple_bind_s()
 
-            for user, olduser, utype in ((ticket[t], ticket._old[t], t)
+            for user, utype in ((ticket[t], t)
                                          for t in ('reporter', 'owner')):
                 if user in self.ALLOWED_USERS:
                     continue
-                if ticket.exists and user == olduser:
+                if ticket.exists and utype not in ticket._old:
                     # case of a ticket modification and user unchanged
                     # the user can be a former employee
                     base_dn = self.LDAP_BASE_DN
