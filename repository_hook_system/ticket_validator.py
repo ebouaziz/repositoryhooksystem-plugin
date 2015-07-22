@@ -38,7 +38,8 @@ class TicketChangeValidator(Component):
         pass
 
     def validate_ticket(self, req, ticket):
-
+        self.env.log.debug('    ticket.values: %s' % ticket.values)
+        self.env.log.debug('    ticket._old: %s' % ticket._old)
         # check that the component and milestone are not in the forbidden list
         # when the ticket is closed
         if ticket['status'] == 'closed' and \
@@ -49,6 +50,7 @@ class TicketChangeValidator(Component):
                 yield 'milestone', tag_('Fix ticket milestone before closing')
 
         if self.enforce_valid_ldap_user:
+            self.env.log.debug('    checking users')
             import ldap
             # check that the reporter and owner are valid LDAP users
 
@@ -57,16 +59,22 @@ class TicketChangeValidator(Component):
             con.simple_bind_s()
 
             for field in ('reporter', 'owner'):
+                self.env.log.debug('    checking ticket %s' % field)
                 if field not in ticket.values:
+                    self.env.log.debug('        not filled yet')
                     continue
                 user = ticket.values[field]
+                self.env.log.debug('      user is %s' % user)
                 if user in self.ALLOWED_USERS:
+                    self.env.log.debug('        allowed special value')
                     continue
                 if ticket.exists and field not in ticket._old:
+                    self.env.log.debug('      nothing new')
                     # case of a ticket modification and user unchanged
                     # the user can be a former employee
                     base_dn = self.LDAP_BASE_DN
                 else:
+                    self.env.log.debug('      ticket creation or value edit')
                     # case of ticket creation or modification of the user
                     # a current employee should be assigned
                     base_dn = ','.join((self.LDAP_PEOPLE, self.LDAP_BASE_DN))
@@ -74,10 +82,13 @@ class TicketChangeValidator(Component):
                 # user must have an email and a givenname (to discard non-human)
                 filter_ = '(&(mail=%s@neotion.com)(givenname=*))' % user
 
+                self.env.log.debug('      base_dn: %s' % base_dn)
+                self.env.log.debug('      filter_: %s' % filter_)
                 # send request
                 res = con.search_s(base_dn, ldap.SCOPE_SUBTREE,
                                    filter_, ['uid'])
                 # report issue if any
                 if not res:
+                    self.env.log.debug('      bad value, warning issued')
                     yield (field,
                            tag_("'%s' is not a valid user" % user))
