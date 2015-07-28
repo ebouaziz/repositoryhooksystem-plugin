@@ -19,6 +19,9 @@ class TicketChangeValidator(Component):
     enforce_valid_ldap_user = BoolOption('ticket',
         'enforce_valid_ldap_user', False,
         """Whether to enforce reporter and owner to be valid ldap users""")
+    valid_ldap_user_filter = Option('ticket', 'valid_ldap_user_filter',
+        '(|(EmployeeType=employee)(EmployeeType=contractor))',
+        """LDAP filter that matches valid employees""")
     forbidden_milestones_on_close = Option('ticket',
         'forbidden_milestones_on_close', 'Next',
         """A ticket cannot be closed if its milestone is in that list""")
@@ -51,32 +54,29 @@ class TicketChangeValidator(Component):
             import ldap
             # check that the reporter and owner are valid LDAP users
 
-            # connect to the ldap server
-            con = ldap.initialize(self.LDAP_URL)
-            con.simple_bind_s()
-
+            con = None
             for field in ('reporter', 'owner'):
                 if field not in ticket.values:
                     continue
                 user = ticket.values[field]
                 if user in self.ALLOWED_USERS:
                     continue
-                if ticket.exists and field not in ticket._old:
-                    # case of a ticket modification and user unchanged
-                    # the user can be a former employee
-                    base_dn = self.LDAP_BASE_DN
-                else:
+                if not ticket.exists or field in ticket._old:
                     # case of ticket creation or modification of the user
                     # a current employee should be assigned
                     base_dn = ','.join((self.LDAP_PEOPLE, self.LDAP_BASE_DN))
-
-                # user must have an email and a givenname (to discard non-human)
-                filter_ = '(&(mail=%s@neotion.com)(givenname=*))' % user
-
-                # send request
-                res = con.search_s(base_dn, ldap.SCOPE_SUBTREE,
-                                   filter_, ['uid'])
-                # report issue if any
-                if not res:
-                    yield (field,
-                           tag_("'%s' is not a valid user" % user))
+                    filter_ = '(&(uid=%s)%s)' % \
+                              (user, self.valid_ldap_user_filter)
+                    # connect to the ldap server
+                    if not con:
+                        con = ldap.initialize(self.LDAP_URL)
+                        con.simple_bind_s()
+                    # send request
+                    res = con.search_s(base_dn, ldap.SCOPE_SUBTREE,
+                                       filter_, ['uid'])
+                    # report issue if any
+                    if not res:
+                        yield (field,
+                               tag_("'%s' is not a valid user" % user))
+            if con:
+                con.unbind()
