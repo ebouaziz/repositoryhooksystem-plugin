@@ -38,14 +38,14 @@ class RepositoryChangeListener(object):
                 except Exception as e:
                     self.env.log.error(exception_to_unicode(e, traceback=True))
 
-                self.env.log.debug(to_unicode('Call listener subscribers ' \
+                self.env.log.debug(to_unicode('Call listener subscribers '
                                               'for hook=%s' % hook))
 
                 # Invoke subscriber for this hook
                 subscribers = listener.subscribers(hook)
                 for subscriber in subscribers:
                     try:
-                        self.env.log.debug(to_unicode('Call subscribers ' \
+                        self.env.log.debug(to_unicode('Call subscribers '
                                                       'for hook=%s' % hook))
 
                         subscriber.invoke(**vars(options))
@@ -55,7 +55,7 @@ class RepositoryChangeListener(object):
                     # Other exceptions
                     except Exception as e:
                         self.env.log.error(exception_to_unicode(e,
-                                                               traceback=True))
+                                                                traceback=True))
                         status.append(1)  # Force an error code
         return not any(status)
 

@@ -33,7 +33,7 @@ class PreRevPropChange(Component):
                action, user, repository, **kwargs):
 
         # grab the first line from stdin (we don't care about other lines for
-        # new)
+        # now)
         value = sys.stdin.readline()
 
         RevpropHook(self.env, None, project, revision, propname, value,
@@ -42,7 +42,7 @@ class PreRevPropChange(Component):
 
 class PostRevPropChange(Component):
 
-    """annotes and closes tickets on repository commit messages"""
+    """annotates and closes tickets on repository commit messages"""
 
     implements(IRepositoryHookSubscriber)
 
@@ -59,7 +59,7 @@ class PostRevPropChange(Component):
                action, user, repository, **kwargs):
 
         # grab the first line from stdin (we don't care about other lines for
-        # new)
+        # now)
         value = sys.stdin.readline()
 
         RevpropHook(self.env, True, project, revision, propname, value,
