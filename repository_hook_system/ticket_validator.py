@@ -7,7 +7,6 @@ from trac.util.translation import tag_
 
 
 class TicketChangeValidator(Component):
-    #implements(ITicketManipulator, IRepositoryHookSubscriber)
     implements(ITicketManipulator)
 
     # TODO: get ldap parameters from [ldap] section
