@@ -45,10 +45,11 @@ class RepositoryChangeListener(object):
                 subscribers = listener.subscribers(hook)
                 for subscriber in subscribers:
                     try:
-                        self.env.log.debug(to_unicode('Call subscribers '
-                                                      'for hook=%s' % hook))
-
+                        self.env.log.debug(to_unicode(
+                            'Call subscriber %s for hook=%s' %
+                            (subscriber, hook)))
                         subscriber.invoke(**vars(options))
+                        self.env.log.debug("subscriber returned")
                     # Hook status
                     except HookStatus as e:
                         status.append(e.status)
