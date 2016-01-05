@@ -798,6 +798,9 @@ class TK_16(TestCaseAbstract):
         # Update trunk
         self.svn_update('')
 
+        # create 'Next' milestone using admin interface
+        self._testenv._tracadmin('milestone', 'add', 'Next', '09/04/18')
+
         # create branch from trunk
         self.branch_create('branches/my_branch', 'Admins! branch creation')
 
