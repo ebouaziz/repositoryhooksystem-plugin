@@ -297,7 +297,6 @@ class CommitHook(object):
                 the value is the list of revisions related to this ticket.
                 Each revision is itself a list [author, log]
         """
-
         ticket_dict = {}
         for rev in revisions:
             # if we bring from the trunk, then retrieve properties with
@@ -323,13 +322,25 @@ class CommitHook(object):
                     ticket_dict[tkid].append([rev_author, rev_log])
                 else:
                     ticket_dict[tkid] = [[rev_author, rev_log]]
-            mo = create_pattern.match(rev_log)
-            if mo:
-                tkid = int(mo.group('ticket'))
-                if tkid in ticket_dict:
-                    ticket_dict[tkid].append([rev_author, rev_log])
-                else:
-                    ticket_dict[tkid] = [[rev_author, rev_log]]
+        # only if no ticket information was found in the user-provided
+        # revision range, we try to get a ticket reference in the branch-
+        # creation commit message
+        if not ticket_dict:
+            src = self.proxy.find_revision_branch(int(revisions[0]), self.bcre)
+            # only do this for sandboxes
+            if sandbox_pattern.match(src):
+                for rev in self.proxy.get_history(
+                        int(revisions[0]), src, traverse=False):
+                    rev = rev[0]
+                    rev_log = self.proxy.get_revision_log_message(int(rev))
+                    rev_author = self.proxy.get_revision_author(int(rev))
+                    mo = create_pattern.match(rev_log)
+                    if mo and 'ticket' in mo.groupdict():
+                        tkid = int(mo.group('ticket'))
+                        if tkid in ticket_dict:
+                            ticket_dict[tkid].append([rev_author, rev_log])
+                        else:
+                            ticket_dict[tkid] = [[rev_author, rev_log]]
         return ticket_dict
 
     def _is_txn_with_multiple_branches(self):
@@ -428,7 +439,8 @@ class CommitHook(object):
             self.env.log.debug("> _get_milestone_and_project WTF???")
 
         # fetch revision history of the branch
-        history = [h for h in self.proxy.get_history(self.youngest, branch, None)]
+        history = [h for h in self.proxy.get_history(self.youngest, branch,
+                                                     False)]
 
         # get branch it was created from
         src = self.proxy.get_revision_copy_source(history[-1][0])
@@ -610,10 +622,8 @@ class PreCommitHook(CommitHook):
 
         # Check if the dst branch does not exist
         try:
-            lrev = self.proxy.get_history(
-                self.youngest,
-                dstbranch,
-                0).next()[0]
+            lrev = self.proxy.get_history(self.youngest, dstbranch,
+                                          False).next()[0]
         except Exception as e:
             lrev = None
         if lrev:
@@ -678,7 +688,7 @@ class PreCommitHook(CommitHook):
                 self.finalize(ERROR)
             youngest = self.proxy.get_youngest_path_revision(path)
             # now checks that the deleter is the creator of the branch
-            revs = [h[0] for h in self.proxy.get_history(youngest, path, 0)]
+            revs = [h[0] for h in self.proxy.get_history(youngest, path, False)]
             if not revs:
                 print >> sys.stderr, 'Malformed branch, cannot find ancestor ' \
                                      'from %s (%d)' % (path, youngest)
@@ -885,7 +895,7 @@ class PreCommitHook(CommitHook):
         # source
         print >> sys.stderr, "Branch: (%s) [%s]" % (rev1, branch1)
         brevs = [h[0]
-                 for h in self.proxy.get_history(int(rev1), branch1, None)]
+                 for h in self.proxy.get_history(int(rev1), branch1, False)]
         if rev1 == brevs[0]:
             print >> sys.stderr, \
                 'Cannot deliver the initial branch revision (%d)' % rev1
@@ -1058,15 +1068,15 @@ class PostCommitHook(CommitHook):
         if not update_ticket:
             return OK
 
+        # Get all revisions of the terminated branch
         revs = []
-        for h in self.proxy.get_history(self.rev - 1, path, True):
+        for h in self.proxy.get_history(self.rev - 1, path, False):
             if h[1].lstrip('/') != path:
                 break
             revs.append(h[0])
         revs.reverse()
 
-        # Get all revisions of the terminated branch
-        revisions = self._collect_branch_revs(revs[0], revs[-1])
+        revisions = ["%d" % r for r in revs]
         # Get all tickets related to these revisions
         tickets = self._collect_tickets(revisions)
 
@@ -1078,8 +1088,8 @@ class PostCommitHook(CommitHook):
             changetime = to_timestamp(changetime) + 1
             changetime = to_datetime(changetime, tzinfo=utc)
             ticket.save_changes(self.author,
-                                'Sandbox [source:%s@%d /%s] terminated at [%s]' %
-                                (path, revs[-1], path, self.rev), changetime)
+                                'Sandbox [source:%s@%d /%s] terminated at [%s]'
+                                % (path, revs[-1], path, self.rev), changetime)
         return OK
 
     def _cmd_creates(self, ticket_str):
@@ -1198,7 +1208,8 @@ class PostCommitHook(CommitHook):
 
         # Case sandbox
         if sandbox_pattern.match(dstbranch):
-            history_iterator = self.proxy.get_history(self.rev, dstbranch, 0)
+            history_iterator = self.proxy.get_history(self.rev, dstbranch,
+                                                      False)
 
             for rev, _ in history_iterator:
                 pass
