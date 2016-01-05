@@ -803,7 +803,7 @@ class TK_16(TestCaseAbstract):
 
         # create ticket to be brought
         summary = 'ticket for tk_16'
-        ticket_id, rev = do_delivers()
+        ticket_id, rev = self.do_delivers()
 
         # create ticket used to bring 1st ticket to branch
         summary = 'bring tk_16 to my_branch'
