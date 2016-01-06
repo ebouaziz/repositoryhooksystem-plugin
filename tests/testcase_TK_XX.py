@@ -799,44 +799,47 @@ class TK_16(TestCaseAbstract):
         self.svn_update('')
 
         # create 'Next' milestone using admin interface
-        self._testenv._tracadmin('milestone', 'add', 'Next', '09/04/18')
+        self._testenv._tracadmin('milestone', 'add', 'ThisOne', '09/04/18')
 
-        # create branch from trunk
-        self.branch_create('branches/my_branch', 'Admins! branch creation')
-
-        # create ticket to be brought
-        summary = 'ticket for tk_16'
-        ticket_id, rev = self.do_delivers()
-
-        # create ticket used to bring 1st ticket to branch
-        summary = 'bring tk_16 to my_branch'
-        ticket_id_2 = self._tester.create_ticket(summary=summary)
-        sb_path = 'sandboxes/t%s' % ticket_id_2
-        rev_2 = self.create_sandbox(ticket_id_2, 'branches/my_branch',
-                                    sb_path)
-
-        # bring previous deliver in new sandbox
-        self.svn_merge(sb_path, 'trunk', (rev,))
-        commit_msg = 'Brings [%s]' % rev
-        rev = self.svn_commit(sb_path, commit_msg)
-
-        # check that the original ticket as a message stating it has been
-        # brought to the new sandbox
-        msg = 'Brought in [%s] (from /trunk to %s)' % (rev, sb_path, )
-        self.verify_ticket_entry(ticket_id, rev, msg, sb_path)
-
-        # deliver new sandbox to branch
-        self.svn_merge('branches/my_branch', sb_path, (rev,))
-        commit_msg = 'Delivers [%s]' % rev
         try:
-            rev = self.svn_commit('branches/my_branch', commit_msg)
-        except Exception, e:
-            raise AssertionError("Delivery failed: %s" % e)
+            # create branch from trunk
+            self.branch_create('branches/my_branch', 'Admins! branch creation')
 
-        # check that the delivery message appears in the new ticket
-        msg = 'Delivered in [%s] (from /%s to /branches/my_branch)' % \
-              (rev, sb_path, )
-        self.verify_ticket_entry(ticket_id_2, rev, msg, sb_path)
+            # create ticket to be brought
+            summary = 'ticket for tk_16'
+            ticket_id, rev = self.do_delivers()
+
+            # create ticket used to bring 1st ticket to branch
+            summary = 'bring tk_16 to my_branch'
+            ticket_id_2 = self._tester.create_ticket(summary=summary)
+            sb_path = 'sandboxes/t%s' % ticket_id_2
+            rev_2 = self.create_sandbox(ticket_id_2, 'branches/my_branch',
+                                        sb_path)
+
+            # bring previous deliver in new sandbox
+            self.svn_merge(sb_path, 'trunk', (rev,))
+            commit_msg = 'Brings [%s]' % rev
+            rev = self.svn_commit(sb_path, commit_msg)
+
+            # check that the original ticket as a message stating it has been
+            # brought to the new sandbox
+            msg = 'Brought in [%s] (from /trunk to %s)' % (rev, sb_path, )
+            self.verify_ticket_entry(ticket_id, rev, msg, sb_path)
+
+            # deliver new sandbox to branch
+            self.svn_merge('branches/my_branch', sb_path, (rev,))
+            commit_msg = 'Delivers [%s]' % rev
+            try:
+                rev = self.svn_commit('branches/my_branch', commit_msg)
+            except Exception, e:
+                raise AssertionError("Delivery failed: %s" % e)
+
+            # check that the delivery message appears in the new ticket
+            msg = 'Delivered in [%s] (from /%s to /branches/my_branch)' % \
+                (rev, sb_path, )
+            self.verify_ticket_entry(ticket_id_2, rev, msg, sb_path)
+        finally:
+            self._testenv._tracadmin('milestone', 'remove', 'ThisOne')
 
 def functionalSuite(suite=None):
     if not has_svn:
