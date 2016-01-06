@@ -823,8 +823,18 @@ class TK_16(TestCaseAbstract):
 
             # check that the original ticket as a message stating it has been
             # brought to the new sandbox
-            msg = 'Brought in [%s] (from /trunk to %s)' % (rev, sb_path, )
+            msg = 'Brought in [%s] (from /trunk to /%s)' % (rev, sb_path, )
             self.verify_ticket_entry(ticket_id, rev, msg, sb_path)
+
+            # close ticket
+            from trac.tests.functional.better_twill import tc
+            self._tester.go_to_ticket(ticket_id_2)
+            tc.formvalue('propertyform', 'milestone', 'ThisOne')
+            tc.formvalue('propertyform', 'action', 'resolve')
+            tc.formvalue('propertyform',
+                         'action_resolve_resolve_resolution',
+                         'fixed')
+            tc.submit('submit')
 
             # deliver new sandbox to branch
             self.svn_merge('branches/my_branch', sb_path, (rev,))
@@ -837,7 +847,8 @@ class TK_16(TestCaseAbstract):
             # check that the delivery message appears in the new ticket
             msg = 'Delivered in [%s] (from /%s to /branches/my_branch)' % \
                 (rev, sb_path, )
-            self.verify_ticket_entry(ticket_id_2, rev, msg, sb_path)
+            self.verify_ticket_entry(ticket_id_2, rev, msg,
+                                     'branches/my_branch')
         finally:
             self._testenv._tracadmin('milestone', 'remove', 'ThisOne')
 
