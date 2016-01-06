@@ -323,13 +323,25 @@ class CommitHook(object):
                     ticket_dict[tkid].append([rev_author, rev_log])
                 else:
                     ticket_dict[tkid] = [[rev_author, rev_log]]
-            mo = create_pattern.match(rev_log)
-            if mo:
-                tkid = int(mo.group('ticket'))
-                if tkid in ticket_dict:
-                    ticket_dict[tkid].append([rev_author, rev_log])
-                else:
-                    ticket_dict[tkid] = [[rev_author, rev_log]]
+        # only if no ticket information was found in the user-provided
+        # revision range, we try to get a ticket reference in the branch-
+        # creation commit message
+        if not ticket_dict:
+            src = self.proxy.find_revision_branch(int(revisions[0]), self.bcre)
+            # only do this for sandboxes
+            if sandbox_pattern.match(src):
+                for rev in self.proxy.get_history(
+                        int(revisions[0]), src, traverse=False):
+                    rev = rev[0]
+                    rev_log = self.proxy.get_revision_log_message(int(rev))
+                    rev_author = self.proxy.get_revision_author(int(rev))
+                    mo = create_pattern.match(rev_log)
+                    if mo and 'ticket' in mo.groupdict():
+                        tkid = int(mo.group('ticket'))
+                        if tkid in ticket_dict:
+                            ticket_dict[tkid].append([rev_author, rev_log])
+                        else:
+                            ticket_dict[tkid] = [[rev_author, rev_log]]
         return ticket_dict
 
     def _is_txn_with_multiple_branches(self):
@@ -613,7 +625,7 @@ class PreCommitHook(CommitHook):
         try:
             lrev = self.proxy.get_history(self.youngest, dstbranch,
                                           traverse=False).next()[0]
-        except Exception:
+        except Exception as e:
             lrev = None
         if lrev:
             print >> sys.stderr, \

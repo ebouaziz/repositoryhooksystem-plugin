@@ -1,4 +1,6 @@
 *.pyc
+*.swp
+*docs.txt
 dist
 build
 RepositoryHookSystem.egg-info
