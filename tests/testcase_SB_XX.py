@@ -111,7 +111,7 @@ class SB_02(TestCaseAbstract):
                          msg="Missing error message='%s', get " \
                          "message='%s'" % (expected_msg, msg))
 
-        expected_msg = "The ticket %s mentionned" \
+        expected_msg = "The ticket %s mentioned" \
                        " in the log message must be open." % ticket_id
         self.assertFalse(msg.find(expected_msg) == -1,
                          msg="Missing error message='%s', get " \
@@ -164,7 +164,7 @@ class SB_03(TestCaseAbstract):
                              msg="Missing error message='%s', get " \
                              "message='%s'" % (expected_msg, msg))
 
-            expected_msg = 'No known action in log message !'
+            expected_msg = 'No known action in log message!'
             self.assertFalse(msg.find(expected_msg) == -1,
                              msg="Missing error message='%s', get " \
                              "message='%s'" % (expected_msg, msg))
