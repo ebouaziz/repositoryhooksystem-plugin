@@ -1,6 +1,11 @@
 #!/bin/sh
 # -*- coding: utf-8 -*-
 
+# this version of the runner runs the plugin as it is in the current directory,
+# instead of checking it out.
+# It also uses the current python env
+
+
 GREEN_COLOR="\\033[1;32m"
 
 RHS_ROOT=$PWD
@@ -32,12 +37,8 @@ git checkout neotion-trunk
 python setup.py bdist_egg
 
 # Repository hook system plugin
-echo "------------ Clone repositoryhooksystem sources ------------"
+echo "------------ Build repositoryhooksystem sources ------------"
 cd $RHS_ROOT
-#cd /tmp
-#git clone git@git.neotion.pro:repositoryhooksystem-plugin.git
-#cd repositoryhooksystem-plugin
-#git checkout t865_no_mans_land_sequence
 python setup.py bdist_egg
 
 # Install plugins

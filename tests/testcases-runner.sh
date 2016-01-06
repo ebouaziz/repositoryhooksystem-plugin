@@ -1,6 +1,10 @@
 #!/bin/sh
 # -*- coding: utf-8 -*-
 
+# useful checks:
+# * libsvn module linked in the virtualenv
+# * access.conf file available
+
 GREEN_COLOR="\\033[1;32m"
 
 # Cleanup
@@ -11,7 +15,7 @@ rm -rf /tmp/plugins
 
 echo "------------ Export symbols ------------"
 export TRAC_PATH=/tmp/trac
-export PYTHONPATH=${TRAC_PATH}:/usr/lib/python2.7/dist-packages:/usr/share/pyshared/:/usr/lib/pyshared/python2.7/:/usr/lib/pyshared/python2.7/libsvn
+export PYTHONPATH=${TRAC_PATH}
 export TRAC_HOOKS_PATH=${TRAC_PATH}/hooks/trac/trac_hook.py
 export TRAC_PLUGINS_PATH=/tmp/plugins
 
