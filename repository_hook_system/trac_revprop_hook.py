@@ -26,6 +26,7 @@
 from .repproxy import RepositoryProxy
 from ConfigParser import ConfigParser
 from repository_hook_system.errors import HookStatus
+from trac.versioncontrol.api import RepositoryManager
 import os
 import re
 import sys
@@ -51,8 +52,15 @@ class RevpropHook(object):
             raise AssertionError("Invalid egg cache directory: %s" %
                                  os.environ['PYTHON_EGG_CACHE'])
         self.env = env
-        self.repospath = self.env.config.get('trac', 'repository_dir') or \
-                         self.env.config.get('repositories', '.dir')
+        rm = RepositoryManager(self.env)
+        reps = rm.get_all_repositories()
+        for repo in reps:
+            rtype = reps[repo].get('type', None) \
+                    or rm.default_repository_type
+            if str(rtype) == 'svn':
+                self.repospath = str(reps[repo]['dir'])
+        else:
+            raise TracError("Only Subversion repositories are supported")
         self.rev = int(rev)
         self.name = name
         self.value = value

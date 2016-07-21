@@ -400,9 +400,8 @@ class CommitHook(object):
         """
         config = ConfigParser()
         if not os.path.isfile(config_path):
-            raise AssertionError('env: %s' % os.environ.keys())
-            raise AssertionError('Unable to find Subversion ACL for admins: %s'
-                                 % config_path)
+            self.env.log.debug("'%s' not found" % config_path)
+            return False
         config.read(config_path)
         admins = config.get('groups', 'admins')
         if not admins:

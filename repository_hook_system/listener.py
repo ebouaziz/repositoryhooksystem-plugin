@@ -14,6 +14,7 @@ from repository_hook_system.interface import IRepositoryChangeListener
 from trac.core import *
 from trac.env import open_environment
 from trac.util.text import exception_to_unicode, to_unicode
+from trac.versioncontrol.api import RepositoryManager
 import os
 import sys
 
@@ -25,13 +26,21 @@ class RepositoryChangeListener(object):
     def process(self, env, project, hook, options):
         self.env = env
 
+        # repo types in the env
+        rm = RepositoryManager(self.env)
+        reps = rm.get_all_repositories()
+        repo_types = set()
+        for repo in reps:
+            rtype = reps[repo].get('type', None) or rm.default_repository_type
+            repo_types.add(str(rtype))
+
         # find the active listeners
         listeners = ExtensionPoint(IRepositoryChangeListener).extensions(env)
 
         # find the listener for the given repository type and invoke the hook
         status = []
         for listener in listeners:
-            if env.config.get('trac', 'repository_type') in listener.type():
+            if repo_types.intersection(listener.type()):
                 # Listener prepare hook context
                 try:
                     listener.prepare_hook_ctx(**vars(options))

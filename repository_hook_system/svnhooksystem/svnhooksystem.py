@@ -10,6 +10,7 @@ from repository_hook_system.interface import (IRepositoryChangeListener,
                                               IRepositoryHookSubscriber)
 from trac.core import *
 from trac.util.text import exception_to_unicode
+from trac.versioncontrol.api import RepositoryManager
 from trac.wiki.formatter import format_to_html
 import os
 import sys
@@ -32,7 +33,15 @@ class SVNHookSystem(Component):
              'pre-revprop-change', 'post-revprop-change']
 
     def filename(self, hookname):
-        location = self.env.config.get('trac', 'repository_dir')
+        rm = RepositoryManager(self.env)
+        reps = rm.get_all_repositories()
+        for repo in reps:
+            rtype = reps[repo].get('type', None) \
+                    or rm.default_repository_type
+            if str(rtype) in self.types:
+                location = str(reps[repo]['dir'])
+        else:
+            raise TracError("Only Subversion repositories are supported")
         return os.path.join(location, 'hooks', hookname)
 
     ### methods for IRepositoryHookAdminContributer
