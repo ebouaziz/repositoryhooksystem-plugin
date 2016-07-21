@@ -6,7 +6,7 @@
 # Copyright (c) 2004 Stephen Hansen
 # Copyright (c) 2005-2007 Emmanuel Blot, Jerome Souquieres
 # Copyright (c) 2009-2011 Remi Verchere
-# Copyright (c) 2015 Neotion
+# Copyright (c) 2015-2016 Sylvain Delisle, Emmanuel Bouaziz
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to
