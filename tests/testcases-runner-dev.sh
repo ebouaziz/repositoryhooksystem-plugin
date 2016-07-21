@@ -5,7 +5,11 @@
 # instead of checking it out.
 # It also uses the current python env
 
-
+if [ -z "${GITHOST}" -o -z "${GITBRANCH}" ]; then
+    # Ex: GITHOST=git@git.example.com GITBRANCH=master
+    echo "Git var. env. not set" >&2
+    exit 1
+fi
 GREEN_COLOR="\\033[1;32m"
 
 RHS_ROOT=$PWD
@@ -31,9 +35,9 @@ export TRAC_PYTHON=`which python`
 # Trac sources installation
 echo "------------ Clone trac sources ------------"
 cd /tmp
-git clone git@git.neotion.pro:trac.git
+git clone ${GITHOST}:trac.git
 cd /tmp/trac
-git checkout neotion-trunk
+git checkout ${GITBRANCH}
 python setup.py bdist_egg
 
 # Repository hook system plugin

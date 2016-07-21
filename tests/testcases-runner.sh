@@ -5,6 +5,11 @@
 # * libsvn module linked in the virtualenv
 # * access.conf file available
 
+if [ -z "${GITHOST}" -o -z "${GITBRANCH}" ]; then
+    # Ex: GITHOST=git@git.example.com GITBRANCH=master
+    echo "Git var. env. not set" >&2
+    exit 1
+fi
 GREEN_COLOR="\\033[1;32m"
 
 # Cleanup
@@ -28,17 +33,17 @@ export TRAC_PYTHON=`which python`
 # Trac sources installation
 echo "------------ Clone trac sources ------------"
 cd /tmp
-git clone git@git.neotion.pro:trac.git
+git clone ${GITHOST}:trac.git
 cd /tmp/trac
-git checkout neotion-trunk
+git checkout ${GITBRANCH}
 python setup.py bdist_egg
 
 # Repository hook system plugin
 echo "------------ Clone repositoryhooksystem sources ------------"
 cd /tmp
-git clone git@git.neotion.pro:repositoryhooksystem-plugin.git
+git clone ${GITHOST}:repositoryhooksystem-plugin.git
 cd repositoryhooksystem-plugin
-git checkout neotion
+git checkout ${GITBRANCH}
 python setup.py bdist_egg
 
 # Install plugins

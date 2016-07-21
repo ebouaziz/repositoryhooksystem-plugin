@@ -10,8 +10,8 @@ class TicketChangeValidator(Component):
     implements(ITicketManipulator)
 
     # TODO: get ldap parameters from [ldap] section
-    LDAP_URL = 'ldap://ldap.neotion.pro'
-    LDAP_BASE_DN = 'dc=neotion,dc=com'
+    LDAP_URL = 'ldap://ldap.example.com'
+    LDAP_BASE_DN = 'dc=example,dc=com'
     LDAP_PEOPLE = 'ou=people'
     ALLOWED_USERS = ('< default >',)
 
